@@ -1,0 +1,20 @@
+version: "3.9"
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - DEEPSEEK_MODEL=${DEEPSEEK_MODEL:-deepseek-chat}
+      - DATABASE_URL=sqlite:///./cv_matcher.db
+      - UPLOAD_DIR=/app/uploads
+    volumes:
+      - cv_data:/app/uploads
+      - db_data:/app
+    restart: unless-stopped
+
+volumes:
+  cv_data:
+  db_data:

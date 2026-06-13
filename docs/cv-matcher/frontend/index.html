@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DeepSeek CV Matcher</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./css/app.css" />
+</head>
+<body>
+
+<!-- ── Sidebar ── -->
+<aside id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">🎯</div>
+    <div>
+      <span>CV Matcher</span>
+      <small>Powered by DeepSeek</small>
+    </div>
+  </div>
+  <nav>
+    <div class="nav-section">Overview</div>
+    <a data-view="dashboard"><span class="icon">📊</span> Dashboard</a>
+    <div class="nav-section">Manage</div>
+    <a data-view="cvs"><span class="icon">📄</span> Resumes / CVs</a>
+    <a data-view="jobs"><span class="icon">💼</span> Job Descriptions</a>
+    <div class="nav-section">AI Engine</div>
+    <a data-view="matching"><span class="icon">🔗</span> Run Matching</a>
+  </nav>
+</aside>
+
+<!-- ── Main ── -->
+<main id="main">
+
+  <!-- ════════════════ DASHBOARD ════════════════ -->
+  <div id="view-dashboard" class="hidden">
+    <div class="topbar">
+      <div>
+        <h1>Dashboard</h1>
+        <p>AI-powered CV matching overview</p>
+      </div>
+    </div>
+    <div class="content">
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon purple">📄</div>
+          <div>
+            <div class="stat-value" id="stat-cvs">0</div>
+            <div class="stat-label">CVs Uploaded</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue">💼</div>
+          <div>
+            <div class="stat-value" id="stat-jobs">0</div>
+            <div class="stat-label">Job Positions</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon amber">🔗</div>
+          <div>
+            <div class="stat-value" id="stat-matches">0</div>
+            <div class="stat-label">Matches Run</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon green">⭐</div>
+          <div>
+            <div class="stat-value" id="stat-strong">0</div>
+            <div class="stat-label">Strong Matches</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Recent Matches</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Candidate</th>
+                <th>Position</th>
+                <th>Score</th>
+                <th>Recommendation</th>
+              </tr>
+            </thead>
+            <tbody id="recent-matches">
+              <tr><td colspan="4" class="text-muted text-sm" style="text-align:center;padding:24px">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════ CVs ════════════════ -->
+  <div id="view-cvs" class="hidden">
+    <div class="topbar">
+      <div>
+        <h1>Resumes &amp; CVs</h1>
+        <p>Upload and manage candidate CVs</p>
+      </div>
+    </div>
+    <div class="content">
+
+      <!-- Upload zone -->
+      <div class="card mb-4">
+        <div class="card-title">Upload CVs</div>
+        <div class="upload-zone" id="upload-zone">
+          <div class="icon">📂</div>
+          <p><strong>Click to upload</strong> or drag &amp; drop</p>
+          <p class="mt-4" style="margin-top:6px;font-size:12px">PDF, DOCX, TXT — up to 10 MB each</p>
+        </div>
+        <input type="file" id="file-input" multiple accept=".pdf,.docx,.doc,.txt" class="hidden" />
+      </div>
+
+      <!-- CV list -->
+      <div class="card">
+        <div class="card-title">Uploaded CVs</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Candidate</th>
+                <th>Experience</th>
+                <th>Top Skills</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="cv-table-body">
+              <tr><td colspan="5" class="text-muted text-sm" style="text-align:center;padding:24px">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════════════════ JOBS ════════════════ -->
+  <div id="view-jobs" class="hidden">
+    <div class="topbar">
+      <div>
+        <h1>Job Descriptions</h1>
+        <p>Create and manage job positions</p>
+      </div>
+    </div>
+    <div class="content">
+
+      <div class="grid-2" style="align-items:start;gap:24px">
+
+        <!-- Create form -->
+        <div class="card">
+          <div class="card-title">New Job Description</div>
+          <form id="job-form">
+            <div class="form-group">
+              <label>Job Title *</label>
+              <input id="job-title" type="text" placeholder="e.g. Senior Backend Engineer" required />
+            </div>
+            <div class="form-group">
+              <label>Company</label>
+              <input id="job-company" type="text" placeholder="e.g. Acme Corp" />
+            </div>
+            <div class="form-group">
+              <label>Job Description *</label>
+              <textarea id="job-desc" rows="10"
+                placeholder="Paste the full job description here…&#10;&#10;Include requirements, responsibilities, skills needed, education…"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%">
+              ✦ Create &amp; Parse with DeepSeek
+            </button>
+          </form>
+        </div>
+
+        <!-- Job list -->
+        <div class="card">
+          <div class="card-title">Job Positions</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Position</th>
+                  <th>Required Skills</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="job-table-body">
+                <tr><td colspan="4" class="text-muted text-sm" style="text-align:center;padding:24px">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════ MATCHING ════════════════ -->
+  <div id="view-matching" class="hidden">
+    <div class="topbar">
+      <div>
+        <h1>AI Matching Engine</h1>
+        <p>Match candidates to job positions using DeepSeek</p>
+      </div>
+    </div>
+    <div class="content">
+
+      <div class="grid-2" style="align-items:start;gap:24px">
+
+        <!-- Controls -->
+        <div>
+          <div class="card mb-4">
+            <div class="card-title">1. Select Job Position</div>
+            <select id="match-job-select">
+              <option value="">— Select a job —</option>
+            </select>
+          </div>
+
+          <div class="card mb-4">
+            <div class="card-title">2. Select Candidates</div>
+            <div id="match-cv-list" style="display:grid;gap:8px;max-height:340px;overflow-y:auto">
+              <div class="text-muted text-sm">Select a job first</div>
+            </div>
+          </div>
+
+          <button id="run-match-btn" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px">
+            ✦ Run AI Matching
+          </button>
+        </div>
+
+        <!-- Results -->
+        <div id="match-results-section" class="hidden">
+          <div class="card">
+            <div class="flex justify-between items-center mb-4">
+              <div class="card-title" style="margin:0">Ranked Candidates</div>
+              <button class="btn btn-secondary btn-sm" id="refresh-results">↻ Refresh</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Candidate</th>
+                    <th>Score</th>
+                    <th>Match</th>
+                    <th>Breakdown</th>
+                    <th>Report</th>
+                  </tr>
+                </thead>
+                <tbody id="match-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ── Toast container ── -->
+<div id="toast-container"></div>
+
+<script type="module" src="./js/main.js"></script>
+<script>
+  // Refresh results button
+  document.getElementById("refresh-results")?.addEventListener("click", () => {
+    window.dispatchEvent(new CustomEvent("refresh-matches"));
+  });
+</script>
+
+</body>
+</html>

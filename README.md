@@ -19,6 +19,7 @@ English/[简体中文](https://github.com/deepseek-ai/awesome-deepseek-integrati
   - [Table of Contents](#table-of-contents)
   - [Project List](#project-list)
     - [Applications](#applications)
+    - [HR & Recruiting Tools](#hr--recruiting-tools)
     - [AI Agent frameworks](#ai-agent-frameworks)
     - [Data AI Applications frameworks](#data-ai-applications-frameworks)
     - [RAG frameworks](#rag-frameworks)
@@ -453,6 +454,18 @@ With these functionalities, the AI assistant can summarize key points within an 
         <td> </td>
         <td> <a href="https://github.com/SamYuan1990/i18n-agent-action">i18n-agent-action</a> </td>
         <td> The i18n Agent is an AI-powered tool designed to streamline and automate internationalization (i18n) and localization (l10n) workflows. By leveraging advanced natural language processing (NLP) and machine learning, it helps developers, translators, and product teams efficiently manage multilingual content—eliminating manual errors and accelerating global deployments. </td>
+    </tr>
+</table>
+
+<p style="text-align: right;"><a href="#table-of-contents">^ Back to Contents ^</a></p>
+
+###  <span id="hr--recruiting-tools">HR & Recruiting Tools</span>
+
+<table>
+    <tr>
+        <td> 🎯 </td>
+        <td> <a href="https://github.com/deepseek-ai/awesome-deepseek-integration/blob/main/docs/cv-matcher/README.md">DeepSeek CV Matcher</a> </td>
+        <td> An open-source AI-powered CV/Resume matching engine. Upload candidate CVs (PDF, DOCX, TXT), define job descriptions, and let DeepSeek parse, score, and rank candidates with multi-dimensional analysis: skills match, experience relevance, education fit, and cultural alignment. Generates detailed reports with matched/missing skills, strengths, concerns, suggested interview questions, and onboarding notes. Ships with a zero-build-step web UI and a FastAPI backend. </td>
     </tr>
 </table>
 
