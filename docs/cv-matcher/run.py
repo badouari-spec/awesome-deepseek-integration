@@ -36,19 +36,49 @@ def _install_once():
     print("\n✓ Done.\n")
 
 
+_PROVIDERS = {
+    "1": {
+        "name": "Groq (gratuit, très rapide)",
+        "url": "https://console.groq.com/keys",
+        "base_url": "https://api.groq.com/openai/v1",
+        "model": "llama-3.3-70b-versatile",
+    },
+    "2": {
+        "name": "DeepSeek",
+        "url": "https://platform.deepseek.com",
+        "base_url": "https://api.deepseek.com",
+        "model": "deepseek-chat",
+    },
+    "3": {
+        "name": "OpenAI",
+        "url": "https://platform.openai.com/api-keys",
+        "base_url": "https://api.openai.com/v1",
+        "model": "gpt-4o",
+    },
+}
+
+
 def _ask_api_key():
     env_path = os.path.join(ROOT_DIR, ".env")
     if os.path.exists(env_path):
         return
-    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    print("  DeepSeek API key not found.")
-    print("  Get one free at: https://platform.deepseek.com")
-    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-    key = input("  Paste your API key (starts with sk-): ").strip()
-    with open(env_path, "w") as f:
-        f.write(f"DEEPSEEK_API_KEY={key}\n")
-        f.write("DEEPSEEK_MODEL=deepseek-chat\n")
-    print("\n✓ Key saved to .env\n")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print("  Configuration initiale — choisissez votre fournisseur IA")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+    for k, p in _PROVIDERS.items():
+        print(f"  {k}. {p['name']}")
+    print()
+    choice = input("  Votre choix (1/2/3) [1 par défaut] : ").strip() or "1"
+    provider = _PROVIDERS.get(choice, _PROVIDERS["1"])
+
+    print(f"\n  Obtenez votre clé sur : {provider['url']}")
+    key = input("  Collez votre clé API ici : ").strip()
+
+    with open(env_path, "w", encoding="utf-8") as f:
+        f.write(f"API_KEY={key}\n")
+        f.write(f"API_BASE_URL={provider['base_url']}\n")
+        f.write(f"AI_MODEL={provider['model']}\n")
+    print(f"\n✓ Clé sauvegardée ({provider['name']}, modèle : {provider['model']})\n")
 
 
 def main():

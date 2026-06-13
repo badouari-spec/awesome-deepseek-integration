@@ -1,8 +1,8 @@
 import json
 from openai import AsyncOpenAI
-from ..config import DEEPSEEK_API_KEY, DEEPSEEK_MODEL, DEEPSEEK_BASE_URL
+from ..config import API_KEY, AI_MODEL, API_BASE_URL
 
-_client = AsyncOpenAI(api_key=DEEPSEEK_API_KEY, base_url=DEEPSEEK_BASE_URL)
+_client = AsyncOpenAI(api_key=API_KEY, base_url=API_BASE_URL)
 
 _CV_PROMPT = """You are an expert CV/resume parser. Extract all information from the CV text below and return ONLY valid JSON with this exact structure:
 {
@@ -143,7 +143,7 @@ Return ONLY valid JSON. No markdown, no explanation."""
 
 async def parse_cv(raw_text: str) -> dict:
     response = await _client.chat.completions.create(
-        model=DEEPSEEK_MODEL,
+        model=AI_MODEL,
         messages=[{"role": "user", "content": _CV_PROMPT + raw_text}],
         response_format={"type": "json_object"},
         temperature=0.1,
@@ -154,7 +154,7 @@ async def parse_cv(raw_text: str) -> dict:
 
 async def parse_job(description: str) -> dict:
     response = await _client.chat.completions.create(
-        model=DEEPSEEK_MODEL,
+        model=AI_MODEL,
         messages=[{"role": "user", "content": _JD_PROMPT + description}],
         response_format={"type": "json_object"},
         temperature=0.1,
@@ -169,7 +169,7 @@ async def match_cv_to_job(cv_data: dict, jd_data: dict) -> dict:
         jd_data=json.dumps(jd_data, indent=2, ensure_ascii=False),
     )
     response = await _client.chat.completions.create(
-        model=DEEPSEEK_MODEL,
+        model=AI_MODEL,
         messages=[{"role": "user", "content": prompt}],
         response_format={"type": "json_object"},
         temperature=0.2,
