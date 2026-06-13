@@ -1,4 +1,5 @@
 import os
+import sys
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -28,6 +29,11 @@ app.include_router(cv_router.router, prefix="/api/cv", tags=["CV Management"])
 app.include_router(job_router.router, prefix="/api/jobs", tags=["Job Management"])
 app.include_router(match_router.router, prefix="/api/matching", tags=["Matching"])
 
-FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "frontend")
+if getattr(sys, "frozen", False):
+    # PyInstaller bundle: frontend is bundled inside _MEIPASS
+    FRONTEND_DIR = os.path.join(sys._MEIPASS, "frontend")
+else:
+    FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "frontend")
+
 if os.path.isdir(FRONTEND_DIR):
     app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")

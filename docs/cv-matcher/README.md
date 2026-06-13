@@ -47,9 +47,68 @@
 
 ---
 
-## Quick Start
+## Windows Executable (.exe)
 
-### 1. Prerequisites
+Build a standalone Windows application — no Python, no Docker needed on the target machine.
+
+### What you get
+
+```
+dist/CVMatcher/
+├── CVMatcher.exe       ← double-click to launch
+├── .env                ← your API key goes here
+├── uploads/            ← uploaded CVs stored here
+├── cv_matcher.db       ← SQLite database (auto-created)
+└── ...                 ← bundled Python runtime
+```
+
+The launcher window lets you enter your API key, see server status, and open the browser:
+
+```
+┌────────────────────────────────────┐
+│  🎯  DeepSeek CV Matcher           │
+├────────────────────────────────────┤
+│  Status:  Running  ✓               │
+│  URL:     http://localhost:8000    │
+├────────────────────────────────────┤
+│  DeepSeek API Key: [sk-***] [Save] │
+├────────────────────────────────────┤
+│  [ 🌐 Open in Browser ]  [ Stop ]  │
+└────────────────────────────────────┘
+```
+
+### Build steps (Windows only)
+
+**Requirements:** Python 3.11+ with *Add to PATH* checked at install time.
+
+```bat
+cd docs\cv-matcher\backend
+build_windows.bat
+```
+
+The script automatically:
+1. Creates a virtual environment
+2. Installs all dependencies + PyInstaller
+3. Builds the executable
+4. Creates `dist\CVMatcher\CVMatcher.exe`
+
+**Total build time:** ~3-5 minutes (first time).
+
+### First run
+
+1. Open `dist\CVMatcher\.env` in Notepad
+2. Replace `sk-your-key-here` with your DeepSeek API key
+3. Double-click `CVMatcher.exe`
+
+Or skip step 1-2 and enter your key directly in the app window, then click **Save**.
+
+### Distribute to others
+
+Zip the entire `dist\CVMatcher\` folder. Recipients just unzip and double-click — no installation required.
+
+---
+
+## Quick Start (Server mode)
 
 - Python 3.11+
 - A [DeepSeek API key](https://platform.deepseek.com)
