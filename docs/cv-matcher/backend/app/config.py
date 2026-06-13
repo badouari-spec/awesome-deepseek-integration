@@ -1,19 +1,22 @@
 import os
 import sys
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
-# When running as a PyInstaller .exe, store writable data next to the executable.
 if getattr(sys, "frozen", False):
+    # Running as .exe — data lives next to the executable
     _DATA_DIR = os.path.dirname(sys.executable)
+    _env = os.path.join(_DATA_DIR, ".env")
+    if os.path.exists(_env):
+        load_dotenv(_env, override=True)
 else:
-    _DATA_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# .env file lives next to the .exe (or in the project root during dev)
-_env_path = os.path.join(_DATA_DIR, ".env")
-if os.path.exists(_env_path):
-    load_dotenv(_env_path, override=True)
-else:
-    load_dotenv()
+    # Dev or run.py launcher: search upward from cwd for .env
+    _dot = find_dotenv(usecwd=True)
+    if _dot:
+        load_dotenv(_dot, override=True)
+    else:
+        load_dotenv()
+    # Writable data goes in cwd (backend/ when launched via run.py)
+    _DATA_DIR = os.getcwd()
 
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
