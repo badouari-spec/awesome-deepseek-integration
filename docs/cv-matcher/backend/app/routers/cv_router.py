@@ -6,9 +6,9 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models.db_models import CVModel
 from ..models.schemas import CVResponse
-from ..services.document_parser import extract_text
+from ..services.document_parser import extract_text, SUPPORTED_EXTENSIONS
 from ..services.ai_service import parse_cv
-from ..config import UPLOAD_DIR, MAX_FILE_SIZE, ALLOWED_EXTENSIONS
+from ..config import UPLOAD_DIR, MAX_FILE_SIZE
 
 router = APIRouter()
 
@@ -38,13 +38,17 @@ async def upload_cv(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-    ext = os.path.splitext(file.filename or "")[1].lower()
-    if ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(400, f"Unsupported file type. Allowed: {ALLOWED_EXTENSIONS}")
+    ext = os.path.splitext(file.filename or "file")[1].lower()
+    if ext not in SUPPORTED_EXTENSIONS:
+        raise HTTPException(
+            400,
+            f"Format « {ext} » non supporté. "
+            f"Formats acceptés : {', '.join(sorted(SUPPORTED_EXTENSIONS))}"
+        )
 
     content = await file.read()
     if len(content) > MAX_FILE_SIZE:
-        raise HTTPException(400, "File too large (max 10 MB)")
+        raise HTTPException(400, f"Fichier trop volumineux (max {MAX_FILE_SIZE // 1024 // 1024} Mo)")
 
     file_id = str(uuid.uuid4())
     save_path = os.path.join(UPLOAD_DIR, f"{file_id}{ext}")
@@ -61,9 +65,7 @@ async def upload_cv(
     db.commit()
     db.refresh(cv)
 
-    # Parse in background so response is immediate
     background_tasks.add_task(_parse_cv_background, cv.id, save_path, db)
-
     return cv
 
 
@@ -76,7 +78,7 @@ def list_cvs(db: Session = Depends(get_db)):
 def get_cv(cv_id: str, db: Session = Depends(get_db)):
     cv = db.query(CVModel).filter(CVModel.id == cv_id).first()
     if not cv:
-        raise HTTPException(404, "CV not found")
+        raise HTTPException(404, "CV non trouvé")
     return cv
 
 
@@ -84,6 +86,6 @@ def get_cv(cv_id: str, db: Session = Depends(get_db)):
 def delete_cv(cv_id: str, db: Session = Depends(get_db)):
     cv = db.query(CVModel).filter(CVModel.id == cv_id).first()
     if not cv:
-        raise HTTPException(404, "CV not found")
+        raise HTTPException(404, "CV non trouvé")
     db.delete(cv)
     db.commit()

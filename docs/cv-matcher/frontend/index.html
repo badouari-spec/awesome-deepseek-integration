@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DeepSeek CV Matcher</title>
+  <title>CV Matcher — IA</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./css/app.css" />
@@ -16,17 +16,17 @@
     <div class="logo-icon">🎯</div>
     <div>
       <span>CV Matcher</span>
-      <small>Powered by DeepSeek</small>
+      <small>Propulsé par l'IA</small>
     </div>
   </div>
   <nav>
-    <div class="nav-section">Overview</div>
-    <a data-view="dashboard"><span class="icon">📊</span> Dashboard</a>
-    <div class="nav-section">Manage</div>
-    <a data-view="cvs"><span class="icon">📄</span> Resumes / CVs</a>
-    <a data-view="jobs"><span class="icon">💼</span> Job Descriptions</a>
-    <div class="nav-section">AI Engine</div>
-    <a data-view="matching"><span class="icon">🔗</span> Run Matching</a>
+    <div class="nav-section">Vue d'ensemble</div>
+    <a data-view="dashboard"><span class="icon">📊</span> Tableau de bord</a>
+    <div class="nav-section">Gestion</div>
+    <a data-view="cvs"><span class="icon">📄</span> CV &amp; Candidats</a>
+    <a data-view="jobs"><span class="icon">💼</span> Fiches de poste</a>
+    <div class="nav-section">Moteur IA</div>
+    <a data-view="matching"><span class="icon">🔗</span> Lancer le matching</a>
   </nav>
 </aside>
 
@@ -37,62 +37,40 @@
   <div id="view-dashboard" class="hidden">
     <div class="topbar">
       <div>
-        <h1>Dashboard</h1>
-        <p>AI-powered CV matching overview</p>
+        <h1>Tableau de bord</h1>
+        <p>Vue d'ensemble du matching IA</p>
       </div>
     </div>
     <div class="content">
-
       <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-icon purple">📄</div>
-          <div>
-            <div class="stat-value" id="stat-cvs">0</div>
-            <div class="stat-label">CVs Uploaded</div>
-          </div>
+          <div><div class="stat-value" id="stat-cvs">0</div><div class="stat-label">CV importés</div></div>
         </div>
         <div class="stat-card">
           <div class="stat-icon blue">💼</div>
-          <div>
-            <div class="stat-value" id="stat-jobs">0</div>
-            <div class="stat-label">Job Positions</div>
-          </div>
+          <div><div class="stat-value" id="stat-jobs">0</div><div class="stat-label">Postes</div></div>
         </div>
         <div class="stat-card">
           <div class="stat-icon amber">🔗</div>
-          <div>
-            <div class="stat-value" id="stat-matches">0</div>
-            <div class="stat-label">Matches Run</div>
-          </div>
+          <div><div class="stat-value" id="stat-matches">0</div><div class="stat-label">Matchings</div></div>
         </div>
         <div class="stat-card">
           <div class="stat-icon green">⭐</div>
-          <div>
-            <div class="stat-value" id="stat-strong">0</div>
-            <div class="stat-label">Strong Matches</div>
-          </div>
+          <div><div class="stat-value" id="stat-strong">0</div><div class="stat-label">Excellents profils</div></div>
         </div>
       </div>
-
       <div class="card">
-        <div class="card-title">Recent Matches</div>
+        <div class="card-title">Derniers matchings</div>
         <div class="table-wrap">
           <table>
-            <thead>
-              <tr>
-                <th>Candidate</th>
-                <th>Position</th>
-                <th>Score</th>
-                <th>Recommendation</th>
-              </tr>
-            </thead>
+            <thead><tr><th>Candidat</th><th>Poste</th><th>Score</th><th>Résultat</th></tr></thead>
             <tbody id="recent-matches">
-              <tr><td colspan="4" class="text-muted text-sm" style="text-align:center;padding:24px">Loading…</td></tr>
+              <tr><td colspan="4" class="text-muted text-sm" style="text-align:center;padding:24px">Chargement…</td></tr>
             </tbody>
           </table>
         </div>
       </div>
-
     </div>
   </div>
 
@@ -100,39 +78,45 @@
   <div id="view-cvs" class="hidden">
     <div class="topbar">
       <div>
-        <h1>Resumes &amp; CVs</h1>
-        <p>Upload and manage candidate CVs</p>
+        <h1>CV &amp; Candidats</h1>
+        <p>Importez des CV dans tous les formats</p>
       </div>
     </div>
     <div class="content">
 
-      <!-- Upload zone -->
       <div class="card mb-4">
-        <div class="card-title">Upload CVs</div>
+        <div class="card-title">Importer des CV</div>
         <div class="upload-zone" id="upload-zone">
           <div class="icon">📂</div>
-          <p><strong>Click to upload</strong> or drag &amp; drop</p>
-          <p class="mt-4" style="margin-top:6px;font-size:12px">PDF, DOCX, TXT — up to 10 MB each</p>
+          <p><strong>Cliquez</strong> ou glissez-déposez vos fichiers</p>
+          <div class="format-badges" style="margin-top:10px;display:flex;flex-wrap:wrap;justify-content:center;gap:4px">
+            <span class="badge" style="background:rgba(99,102,241,.15);color:var(--primary)">PDF</span>
+            <span class="badge" style="background:rgba(99,102,241,.15);color:var(--primary)">DOCX</span>
+            <span class="badge" style="background:rgba(99,102,241,.15);color:var(--primary)">ODT</span>
+            <span class="badge" style="background:rgba(99,102,241,.15);color:var(--primary)">RTF</span>
+            <span class="badge" style="background:rgba(99,102,241,.15);color:var(--primary)">HTML</span>
+            <span class="badge" style="background:rgba(99,102,241,.15);color:var(--primary)">TXT</span>
+            <span class="badge" style="background:rgba(99,102,241,.15);color:var(--primary)">XLSX</span>
+            <span class="badge" style="background:rgba(99,102,241,.15);color:var(--primary)">PPTX</span>
+            <span class="badge" style="background:rgba(99,102,241,.15);color:var(--primary)">EML</span>
+            <span class="badge" style="background:rgba(56,189,248,.12);color:var(--info)">JPG · PNG · …</span>
+          </div>
+          <p style="font-size:11px;margin-top:8px;color:var(--text-muted)">Jusqu'à 20 Mo par fichier · sélection multiple</p>
         </div>
-        <input type="file" id="file-input" multiple accept=".pdf,.docx,.doc,.txt" class="hidden" />
+        <input type="file" id="file-input" multiple
+               accept=".pdf,.docx,.doc,.odt,.rtf,.txt,.md,.html,.htm,.xlsx,.xls,.csv,.pptx,.eml,.jpg,.jpeg,.png,.bmp,.tiff,.gif,.webp"
+               class="hidden" />
       </div>
 
-      <!-- CV list -->
       <div class="card">
-        <div class="card-title">Uploaded CVs</div>
+        <div class="card-title">CV importés</div>
         <div class="table-wrap">
           <table>
             <thead>
-              <tr>
-                <th>Candidate</th>
-                <th>Experience</th>
-                <th>Top Skills</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
+              <tr><th>Candidat</th><th>Expérience</th><th>Compétences clés</th><th>Statut</th><th>Actions</th></tr>
             </thead>
             <tbody id="cv-table-body">
-              <tr><td colspan="5" class="text-muted text-sm" style="text-align:center;padding:24px">Loading…</td></tr>
+              <tr><td colspan="5" class="text-muted text-sm" style="text-align:center;padding:24px">Chargement…</td></tr>
             </tbody>
           </table>
         </div>
@@ -145,52 +129,80 @@
   <div id="view-jobs" class="hidden">
     <div class="topbar">
       <div>
-        <h1>Job Descriptions</h1>
-        <p>Create and manage job positions</p>
+        <h1>Fiches de poste</h1>
+        <p>Créez des postes par saisie ou en important un fichier</p>
       </div>
     </div>
     <div class="content">
-
       <div class="grid-2" style="align-items:start;gap:24px">
 
-        <!-- Create form -->
+        <!-- ── Formulaire création ── -->
         <div class="card">
-          <div class="card-title">New Job Description</div>
-          <form id="job-form">
+          <div class="card-title">Nouveau poste</div>
+
+          <!-- Champs communs -->
+          <div class="form-group">
+            <label>Titre du poste *</label>
+            <input id="job-title" type="text" placeholder="ex : Développeur Backend Senior" />
+          </div>
+          <div class="form-group">
+            <label>Entreprise</label>
+            <input id="job-company" type="text" placeholder="ex : Acme Corp" />
+          </div>
+
+          <!-- Onglets source -->
+          <div class="tabs mb-4" id="job-source-tabs">
+            <button class="tab active" data-tab="text">✏️ Saisir le texte</button>
+            <button class="tab" data-tab="file">📎 Téléverser un fichier</button>
+          </div>
+
+          <!-- Onglet : texte -->
+          <div id="job-src-text">
             <div class="form-group">
-              <label>Job Title *</label>
-              <input id="job-title" type="text" placeholder="e.g. Senior Backend Engineer" required />
+              <label>Description du poste *</label>
+              <textarea id="job-desc" rows="9"
+                placeholder="Collez l'offre d'emploi complète ici…&#10;&#10;Compétences requises, responsabilités, expérience, formation…"></textarea>
             </div>
-            <div class="form-group">
-              <label>Company</label>
-              <input id="job-company" type="text" placeholder="e.g. Acme Corp" />
-            </div>
-            <div class="form-group">
-              <label>Job Description *</label>
-              <textarea id="job-desc" rows="10"
-                placeholder="Paste the full job description here…&#10;&#10;Include requirements, responsibilities, skills needed, education…"></textarea>
-            </div>
-            <button type="submit" class="btn btn-primary" style="width:100%">
-              ✦ Create &amp; Parse with DeepSeek
+            <button id="job-text-submit" class="btn btn-primary" style="width:100%">
+              ✦ Créer &amp; Analyser avec l'IA
             </button>
-          </form>
+          </div>
+
+          <!-- Onglet : fichier -->
+          <div id="job-src-file" class="hidden">
+            <div class="upload-zone" id="jd-upload-zone">
+              <div class="icon">📋</div>
+              <p><strong>Cliquez</strong> ou glissez votre fiche de poste</p>
+              <div style="margin-top:8px;display:flex;flex-wrap:wrap;justify-content:center;gap:4px">
+                <span class="badge" style="background:rgba(99,102,241,.15);color:var(--primary)">PDF</span>
+                <span class="badge" style="background:rgba(99,102,241,.15);color:var(--primary)">DOCX</span>
+                <span class="badge" style="background:rgba(99,102,241,.15);color:var(--primary)">TXT</span>
+                <span class="badge" style="background:rgba(99,102,241,.15);color:var(--primary)">HTML</span>
+                <span class="badge" style="background:rgba(99,102,241,.15);color:var(--primary)">RTF</span>
+                <span class="badge" style="background:rgba(99,102,241,.15);color:var(--primary)">ODT</span>
+                <span class="badge" style="background:rgba(99,102,241,.15);color:var(--primary)">XLSX</span>
+                <span class="badge" style="background:rgba(56,189,248,.12);color:var(--info)">+ images</span>
+              </div>
+            </div>
+            <input type="file" id="jd-file-input" class="hidden"
+                   accept=".pdf,.docx,.doc,.odt,.rtf,.txt,.md,.html,.htm,.xlsx,.xls,.csv,.pptx,.eml,.jpg,.jpeg,.png,.bmp,.tiff" />
+            <div id="jd-file-name" class="text-muted text-sm mt-4" style="margin-top:8px;min-height:20px"></div>
+            <button id="jd-upload-btn" class="btn btn-primary mt-4" style="width:100%;margin-top:12px" disabled>
+              ✦ Créer depuis le fichier
+            </button>
+          </div>
         </div>
 
-        <!-- Job list -->
+        <!-- ── Liste des postes ── -->
         <div class="card">
-          <div class="card-title">Job Positions</div>
+          <div class="card-title">Postes créés</div>
           <div class="table-wrap">
             <table>
               <thead>
-                <tr>
-                  <th>Position</th>
-                  <th>Required Skills</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
+                <tr><th>Poste</th><th>Compétences requises</th><th>Statut</th><th>Actions</th></tr>
               </thead>
               <tbody id="job-table-body">
-                <tr><td colspan="4" class="text-muted text-sm" style="text-align:center;padding:24px">Loading…</td></tr>
+                <tr><td colspan="4" class="text-muted text-sm" style="text-align:center;padding:24px">Chargement…</td></tr>
               </tbody>
             </table>
           </div>
@@ -204,52 +216,41 @@
   <div id="view-matching" class="hidden">
     <div class="topbar">
       <div>
-        <h1>AI Matching Engine</h1>
-        <p>Match candidates to job positions using DeepSeek</p>
+        <h1>Moteur de matching IA</h1>
+        <p>Comparez les candidats aux postes avec l'IA</p>
       </div>
     </div>
     <div class="content">
-
       <div class="grid-2" style="align-items:start;gap:24px">
 
-        <!-- Controls -->
         <div>
           <div class="card mb-4">
-            <div class="card-title">1. Select Job Position</div>
+            <div class="card-title">1. Choisir le poste</div>
             <select id="match-job-select">
-              <option value="">— Select a job —</option>
+              <option value="">— Sélectionnez un poste —</option>
             </select>
           </div>
-
           <div class="card mb-4">
-            <div class="card-title">2. Select Candidates</div>
+            <div class="card-title">2. Choisir les candidats</div>
             <div id="match-cv-list" style="display:grid;gap:8px;max-height:340px;overflow-y:auto">
-              <div class="text-muted text-sm">Select a job first</div>
+              <div class="text-muted text-sm">Sélectionnez un poste d'abord</div>
             </div>
           </div>
-
           <button id="run-match-btn" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px">
-            ✦ Run AI Matching
+            ✦ Lancer le matching IA
           </button>
         </div>
 
-        <!-- Results -->
         <div id="match-results-section" class="hidden">
           <div class="card">
             <div class="flex justify-between items-center mb-4">
-              <div class="card-title" style="margin:0">Ranked Candidates</div>
-              <button class="btn btn-secondary btn-sm" id="refresh-results">↻ Refresh</button>
+              <div class="card-title" style="margin:0">Candidats classés</div>
+              <button class="btn btn-secondary btn-sm" id="refresh-results">↻ Actualiser</button>
             </div>
             <div class="table-wrap">
               <table>
                 <thead>
-                  <tr>
-                    <th>Candidate</th>
-                    <th>Score</th>
-                    <th>Match</th>
-                    <th>Breakdown</th>
-                    <th>Report</th>
-                  </tr>
+                  <tr><th>Candidat</th><th>Score</th><th>Résultat</th><th>Détail</th><th>Rapport</th></tr>
                 </thead>
                 <tbody id="match-table-body"></tbody>
               </table>
@@ -263,16 +264,13 @@
 
 </main>
 
-<!-- ── Toast container ── -->
 <div id="toast-container"></div>
 
 <script type="module" src="./js/main.js"></script>
 <script>
-  // Refresh results button
   document.getElementById("refresh-results")?.addEventListener("click", () => {
     window.dispatchEvent(new CustomEvent("refresh-matches"));
   });
 </script>
-
 </body>
 </html>

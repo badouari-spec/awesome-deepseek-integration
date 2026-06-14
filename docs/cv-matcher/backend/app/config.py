@@ -33,5 +33,6 @@ DEEPSEEK_MODEL    = AI_MODEL
 DEEPSEEK_BASE_URL = API_BASE_URL
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", os.path.join(_DATA_DIR, "uploads"))
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{os.path.join(_DATA_DIR, 'cv_matcher.db')}")
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
-ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc", ".txt"}
+MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB
+# Extensions are enforced by document_parser.SUPPORTED_EXTENSIONS at runtime
+ALLOWED_EXTENSIONS: set = set()  # empty = accept all handled by parser
