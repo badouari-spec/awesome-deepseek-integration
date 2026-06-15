@@ -1,0 +1,50 @@
+# ════════════════════════════════════════════════════════════
+#  AEJ CV MATCHER PRO — Dépendances (MODE LOCAL OLLAMA)
+#  Installation : pip install -r requirements_local.txt
+# ════════════════════════════════════════════════════════════
+#  ✅ 100% local — aucune clé API, aucun cloud requis.
+#  IA via Ollama (Gemma, LLaMA, Mistral…) sur votre PC.
+#  Installez Ollama : https://ollama.com
+#  Puis : ollama pull gemma3:4b
+# ════════════════════════════════════════════════════════════
+
+# ── Extraction de texte multi-format ───────────────────────
+pdfplumber>=0.11.0          # PDF (texte + tableaux)
+python-docx>=1.1.0          # Word .docx (+ tableaux)
+docx2txt>=0.8              # Word .doc / .docx (repli)
+striprtf>=0.0.26           # RTF
+python-pptx>=0.6.23        # PowerPoint .pptx
+pdf2image>=1.17.0          # PDF scanné -> images (OCR)
+
+# ── OCR (CV scannés / images JPG, PNG, TIFF, BMP, WEBP) ────
+pytesseract>=0.3.10
+Pillow>=10.0.0
+opencv-python>=4.9.0       # pré-traitement OCR (binarisation, débruitage)
+
+# ── Moteur de matching hybride ─────────────────────────────
+requests>=2.31.0           # Appels Ollama API (HTTP local)
+scikit-learn>=1.4.0        # TF-IDF cosinus
+rank-bm25>=0.2.2           # BM25 Okapi (ranking lexical)
+rapidfuzz>=3.6.0           # matching flou des compétences
+
+# ── Dashboard & rapports ───────────────────────────────────
+matplotlib>=3.8.0          # 6 graphiques
+openpyxl>=3.1.2            # rapport Excel 4 feuilles
+
+# ── Notifications Windows (optionnel) ──────────────────────
+win10toast>=0.9 ; sys_platform == 'win32'
+
+# ── Build .exe ─────────────────────────────────────────────
+pyinstaller>=6.6.0
+
+# ════════════════════════════════════════════════════════════
+#  OPTIONNEL — Similarité sémantique avancée (embeddings)
+#  ⚠️ Très volumineux (PyTorch ~2 Go). N'installer QUE si
+#     vous voulez activer "USE_EMBEDDINGS". Sinon le moteur
+#     BM25 + fuzzy + TF-IDF est déjà très performant.
+#  pip install sentence-transformers
+#  -- ou version légère ONNX (sans PyTorch) :
+#  pip install fastembed
+# ════════════════════════════════════════════════════════════
+
+# tkinter est inclus avec Python (aucun pip requis).

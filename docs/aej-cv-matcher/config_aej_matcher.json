@@ -1,0 +1,11 @@
+{
+  "SOURCE_MODE": "LOCAL",
+  "OLLAMA_URL": "http://localhost:11434",
+  "OLLAMA_MODEL": "gemma3:4b",
+  "BLEND_LLM": 0.70,
+  "BLEND_SEMANTIC": 0.18,
+  "BLEND_SKILLS": 0.12,
+  "PARALLEL_WORKERS": 4,
+  "PAUSE_API": 0.5,
+  "TESSERACT_PATH": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
+}
