@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
-# PyInstaller spec for DeepSeek CV Matcher
-# Run:  pyinstaller cv_matcher.spec --clean --noconfirm
+# PyInstaller spec — CV Matcher (Mode IA Locale)
+# Commande : pyinstaller cv_matcher.spec --clean --noconfirm
 
 block_cipher = None
 
@@ -9,10 +9,17 @@ a = Analysis(
     pathex=['.'],
     binaries=[],
     datas=[
-        # Bundle the frontend alongside Python code
-        ('../frontend', 'frontend'),
+        ('../frontend', 'frontend'),   # Interface web incluse dans le bundle
     ],
     hiddenimports=[
+        # ── tkinter ──
+        'tkinter',
+        'tkinter.ttk',
+        'tkinter.messagebox',
+        # ── urllib (vérification Ollama) ──
+        'urllib.request',
+        'urllib.error',
+        'urllib.parse',
         # ── uvicorn ──
         'uvicorn.logging',
         'uvicorn.loops',
@@ -37,7 +44,7 @@ a = Analysis(
         'anyio',
         'anyio._backends._asyncio',
         'anyio.from_thread',
-        # ── PDF ──
+        # ── Parsers de documents ──
         'pdfplumber',
         'pdfminer',
         'pdfminer.high_level',
@@ -49,13 +56,24 @@ a = Analysis(
         'pdfminer.pdfparser',
         'pdfminer.pdfdocument',
         'pdfminer.cmapdb',
-        'pdfminer.jbig2',
-        'pdfminer.image',
-        # ── DOCX ──
         'docx',
         'docx.oxml',
         'docx.oxml.ns',
         'docx.shared',
+        'striprtf.striprtf',
+        'bs4',
+        'bs4.builder',
+        'bs4.builder._htmlparser',
+        'odf',
+        'odf.text',
+        'odf.teletype',
+        'odf.opendocument',
+        'openpyxl',
+        'openpyxl.styles',
+        'pptx',
+        'pptx.util',
+        'PIL',
+        'PIL.Image',
         # ── SQLAlchemy ──
         'sqlalchemy',
         'sqlalchemy.orm',
@@ -64,37 +82,37 @@ a = Analysis(
         'sqlalchemy.dialects.sqlite',
         'sqlalchemy.dialects.sqlite.pysqlite',
         'sqlalchemy.sql.sqltypes',
-        # ── File upload ──
+        # ── Upload fichier ──
         'multipart',
         'python_multipart',
-        # ── Async file I/O ──
+        # ── Async I/O ──
         'aiofiles',
         'aiofiles.os',
         'aiofiles.threadpool',
-        # ── HTTP clients ──
+        # ── HTTP (client Ollama / OpenAI) ──
         'httpx',
         'httpcore',
         'httpcore._sync',
         'httpcore._async',
         'h11',
-        'h2',
         # ── OpenAI SDK ──
         'openai',
         'openai.resources',
         'openai.resources.chat',
-        # ── Misc ──
+        # ── Divers ──
         'certifi',
         'charset_normalizer',
-        'chardet',
         'dotenv',
         'python_dotenv',
         'pydantic',
         'pydantic.v1',
-        'email_validator',
-        'pkg_resources',
         'sniffio',
         'exceptiongroup',
-        # ── App modules (dynamic router imports) ──
+        'email',
+        'email.message',
+        'csv',
+        're',
+        # ── Modules applicatifs ──
         'app',
         'app.main',
         'app.config',
@@ -114,7 +132,7 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
-        'matplotlib', 'numpy', 'pandas', 'PIL', 'cv2',
+        'matplotlib', 'numpy', 'pandas',
         'torch', 'tensorflow', 'scipy', 'sklearn',
         'IPython', 'notebook', 'jupyter',
     ],
@@ -136,16 +154,15 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=False,       # No black console window
+    console=False,      # Pas de fenêtre console noire
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None,           # Add your .ico path here if you have one
+    icon=None,
 )
 
-# --onedir mode: creates dist/CVMatcher/ folder
 coll = COLLECT(
     exe,
     a.binaries,

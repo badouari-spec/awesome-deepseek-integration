@@ -1,106 +1,104 @@
 @echo off
 setlocal enabledelayedexpansion
-title DeepSeek CV Matcher - Build
+title CV Matcher — Compilation Windows (.exe)
+color 0A
 
 echo.
-echo  ===================================================
-echo   DeepSeek CV Matcher  ^|  Windows Build Script
-echo  ===================================================
+echo  ╔══════════════════════════════════════════════════════╗
+echo  ║   CV Matcher — Build Windows EXE (Mode IA Locale)   ║
+echo  ╚══════════════════════════════════════════════════════╝
+echo.
+echo  Ce logiciel fonctionne 100%% en local avec Ollama.
+echo  Aucune cle API requise. Vos donnees ne quittent jamais votre PC.
 echo.
 
-:: ── Check Python ─────────────────────────────────────────────────────────────
+:: ── Vérification Python ──────────────────────────────────────────────────────
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo  [ERROR] Python not found.
-    echo          Install Python 3.11+ from https://python.org
-    echo          Make sure to check "Add Python to PATH" during install.
+    echo  [ERREUR] Python introuvable.
+    echo           Installez Python 3.11+ depuis https://python.org
+    echo           Cochez "Add Python to PATH" pendant l'installation.
     echo.
-    pause
-    exit /b 1
+    pause & exit /b 1
 )
-
 for /f "tokens=2" %%v in ('python --version') do set PY_VER=%%v
-echo  Python %PY_VER% found.
+echo  [OK] Python %PY_VER% detecte.
 echo.
 
-:: ── Create virtual environment ────────────────────────────────────────────────
+:: ── Environnement virtuel ────────────────────────────────────────────────────
 if not exist .venv (
-    echo  [1/5] Creating virtual environment...
+    echo  [1/5] Creation de l'environnement virtuel...
     python -m venv .venv
 ) else (
-    echo  [1/5] Virtual environment already exists.
+    echo  [1/5] Environnement virtuel existant.
 )
-
 call .venv\Scripts\activate.bat
 
-:: ── Install dependencies ──────────────────────────────────────────────────────
+:: ── Installation des dependances ────────────────────────────────────────────
 echo.
-echo  [2/5] Installing dependencies (this may take a few minutes)...
+echo  [2/5] Installation des dependances Python (~2-3 minutes)...
 pip install --upgrade pip --quiet
 pip install -r requirements.txt --quiet
 pip install pyinstaller --quiet
-echo       Done.
+echo       OK.
 
-:: ── Clean previous build ──────────────────────────────────────────────────────
+:: ── Nettoyage ────────────────────────────────────────────────────────────────
 echo.
-echo  [3/5] Cleaning previous build...
-if exist dist   rmdir /s /q dist
-if exist build  rmdir /s /q build
-echo       Done.
+echo  [3/5] Nettoyage de l'ancien build...
+if exist dist  rmdir /s /q dist
+if exist build rmdir /s /q build
+echo       OK.
 
-:: ── Run PyInstaller ───────────────────────────────────────────────────────────
+:: ── Compilation PyInstaller ──────────────────────────────────────────────────
 echo.
-echo  [4/5] Building executable with PyInstaller...
+echo  [4/5] Compilation de l'executable (5-10 minutes)...
 pyinstaller cv_matcher.spec --clean --noconfirm
 if errorlevel 1 (
     echo.
-    echo  [ERROR] PyInstaller failed. See errors above.
-    pause
-    exit /b 1
+    echo  [ERREUR] La compilation a echoue. Verifiez les erreurs ci-dessus.
+    pause & exit /b 1
 )
 
-:: ── Post-build setup ──────────────────────────────────────────────────────────
+:: ── Post-traitement ──────────────────────────────────────────────────────────
 echo.
-echo  [5/5] Finalizing output...
+echo  [5/5] Finalisation...
 
-:: Copy .env template next to the .exe
-copy ..\  .env.example  dist\CVMatcher\.env.example >nul 2>&1
-copy ..\.env.example  dist\CVMatcher\.env.example >nul 2>&1
-
-:: Create empty uploads folder
+:: Dossier uploads
 if not exist dist\CVMatcher\uploads mkdir dist\CVMatcher\uploads
 
-:: Create a starter .env if it doesn't exist
+:: Fichier .env par defaut (mode Ollama local)
 if not exist dist\CVMatcher\.env (
-    echo DEEPSEEK_API_KEY=sk-your-key-here  > dist\CVMatcher\.env
-    echo DEEPSEEK_MODEL=deepseek-chat       >> dist\CVMatcher\.env
+    echo AI_PROVIDER=ollama                          > dist\CVMatcher\.env
+    echo API_KEY=ollama                             >> dist\CVMatcher\.env
+    echo API_BASE_URL=http://localhost:11434/v1     >> dist\CVMatcher\.env
+    echo AI_MODEL=gemma3:4b                         >> dist\CVMatcher\.env
+    echo OLLAMA_BASE_URL=http://localhost:11434     >> dist\CVMatcher\.env
 )
 
-:: Create a launch shortcut batch (optional helper)
-echo @echo off                                     > dist\CVMatcher\Start CVMatcher.bat
-echo start "" "%%~dp0CVMatcher.exe"               >> dist\CVMatcher\Start CVMatcher.bat
+:: Raccourci batch de lancement
+echo @echo off                                        > "dist\CVMatcher\Lancer CV Matcher.bat"
+echo start "" "%%~dp0CVMatcher.exe"                  >> "dist\CVMatcher\Lancer CV Matcher.bat"
 
-:: ── Summary ───────────────────────────────────────────────────────────────────
+:: ── Resultat ─────────────────────────────────────────────────────────────────
 echo.
 if exist dist\CVMatcher\CVMatcher.exe (
-    echo  ===================================================
-    echo   BUILD SUCCESSFUL!
-    echo  ===================================================
-    echo.
-    echo   Output folder : dist\CVMatcher\
-    echo   Executable    : dist\CVMatcher\CVMatcher.exe
-    echo.
-    echo   BEFORE RUNNING:
-    echo   1. Open  dist\CVMatcher\.env
-    echo   2. Replace  sk-your-key-here  with your DeepSeek API key
-    echo      Get one at: https://platform.deepseek.com
-    echo.
-    echo   OR enter the API key directly in the app window after launch.
-    echo.
-    echo   TO DISTRIBUTE: zip the entire  dist\CVMatcher\  folder.
-    echo  ===================================================
+    echo  ╔══════════════════════════════════════════════════════╗
+    echo  ║              BUILD TERMINE AVEC SUCCES !             ║
+    echo  ╠══════════════════════════════════════════════════════╣
+    echo  ║  Executable : dist\CVMatcher\CVMatcher.exe           ║
+    echo  ╠══════════════════════════════════════════════════════╣
+    echo  ║  AVANT DE LANCER L'APPLICATION :                     ║
+    echo  ║                                                      ║
+    echo  ║  1) Installez Ollama : https://ollama.com            ║
+    echo  ║  2) Ouvrez un terminal et tapez :                    ║
+    echo  ║       ollama pull gemma3:4b                          ║
+    echo  ║     (ou llama3.2 / mistral / phi4 / qwen2.5)        ║
+    echo  ║  3) Double-cliquez sur CVMatcher.exe                 ║
+    echo  ║                                                      ║
+    echo  ║  DISTRIBUER : zippez tout le dossier dist\CVMatcher\ ║
+    echo  ╚══════════════════════════════════════════════════════╝
 ) else (
-    echo  [ERROR] Build failed — CVMatcher.exe not found.
+    echo  [ERREUR] CVMatcher.exe non trouve — build echoue.
 )
 
 echo.

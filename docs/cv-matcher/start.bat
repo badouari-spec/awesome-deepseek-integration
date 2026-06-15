@@ -1,15 +1,20 @@
 @echo off
-title DeepSeek CV Matcher
+title CV Matcher — IA Locale
 cd /d "%~dp0"
+
+echo.
+echo  ╔═══════════════════════════════════════╗
+echo  ║   CV Matcher — Matching de CV par IA  ║
+echo  ║   Mode 100%% local avec Ollama         ║
+echo  ╚═══════════════════════════════════════╝
+echo.
 
 :: ── Vérifier Python ──────────────────────────────────────────────────────────
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo.
-    echo  Python n'est pas installe sur ce PC.
-    echo.
-    echo  Telechargez Python sur : https://www.python.org/downloads/
-    echo  Cochez bien "Add Python to PATH" pendant l'installation.
+    echo  Python n'est pas installe.
+    echo  Telechargez-le sur : https://www.python.org/downloads/
+    echo  Cochez "Add Python to PATH" lors de l'installation.
     echo.
     pause
     exit /b
@@ -18,7 +23,6 @@ if errorlevel 1 (
 :: ── Lancer l'application ─────────────────────────────────────────────────────
 python run.py
 
-:: ── Si le serveur s'arrête, attendre avant de fermer ────────────────────────
 echo.
-echo  Le serveur est arrêté.
+echo  Le serveur s'est arrete.
 pause
