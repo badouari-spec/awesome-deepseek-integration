@@ -1,23 +1,71 @@
-# DeepSeek CV Matcher
+# CV Matcher — Matching de CV par IA
 
-> AI-powered CV/Resume matching engine — upload resumes, define job descriptions, and let DeepSeek rank and analyse candidates with detailed reports.
+> Logiciel de matching CV / fiche de poste alimenté par IA — uploadez des CVs, définissez des fiches de poste, et laissez l'IA classer et analyser les candidats. Fonctionne **100 % en local avec Ollama** (Gemma, LLaMA, Mistral…) ou via une API cloud (Groq, DeepSeek, OpenAI).
 
 ---
 
-## Features
+## Fonctionnalités
 
-- **Intelligent Parsing** — Extract structured data from PDF, DOCX, and TXT files using DeepSeek. No regex hacks: real semantic understanding of experience, skills, education, and achievements.
-- **Job Description Analysis** — Automatically identify required vs. preferred skills, experience levels, and cultural signals from free-text job descriptions.
-- **Multi-dimensional Scoring** — Each candidate is scored across four dimensions (weights are configurable):
-  | Dimension | Weight |
-  |-----------|--------|
-  | Technical Skills | 35% |
-  | Work Experience | 30% |
-  | Cultural Fit | 20% |
-  | Education | 15% |
-- **Ranked Candidate List** — Candidates are sorted by overall match score with a clear recommendation label (Strong Match → Poor Match).
-- **Detailed Reports** — For every CV × Job pair: matched / missing skills, strengths, concerns, per-dimension analysis, suggested interview questions, and onboarding notes.
-- **Async Processing** — Uploads and parsing run in the background so the UI stays responsive; status is polled automatically.
+- **Parsing universel** — PDF, DOCX, DOC, ODT, RTF, HTML, XLSX, PPTX, EML, TXT, images (JPG/PNG via OCR). Extraction sémantique réelle via IA.
+- **Analyse des fiches de poste** — Identification des compétences requises, niveau d'expérience, critères éliminatoires. Saisie texte ou upload fichier.
+- **Scoring multi-dimensionnel** — Chaque candidat est évalué sur :
+
+  | Dimension | Poids |
+  |-----------|-------|
+  | Compétences métier | 35 % |
+  | Expérience | 25 % |
+  | Diplôme | 15 % |
+  | Mots-clés sectoriels | 10 % |
+  | Outils / logiciels | 5 % |
+  | Langues | 5 % |
+  | Localisation | 5 % |
+
+- **Classement des candidats** — Triés par score global avec label PRIORITAIRE / MOYEN / FAIBLE.
+- **Rapports détaillés** — Points forts, réserves, critères éliminatoires touchés, justification IA.
+- **Traitement asynchrone** — Upload et parsing en arrière-plan ; le statut se met à jour automatiquement.
+
+---
+
+## Mode local 100 % (recommandé)
+
+Le logiciel tourne **entièrement sur votre PC** avec [Ollama](https://ollama.com) — aucune donnée ne quitte votre machine.
+
+### Prérequis
+
+1. **Python 3.11+** — [python.org/downloads](https://www.python.org/downloads/) (cocher *Add to PATH*)
+2. **Ollama** — [ollama.com](https://ollama.com)
+3. Un modèle IA installé :
+   ```
+   ollama pull gemma3:4b          # léger, recommandé
+   ollama pull llama3.2           # Meta, rapide
+   ollama pull mistral            # Mistral AI
+   ```
+
+### Démarrage (Windows)
+
+Double-cliquez sur **`start.bat`** — les dépendances s'installent automatiquement au premier lancement, puis le navigateur s'ouvre sur `http://localhost:8000`.
+
+### Démarrage (Mac / Linux)
+
+```bash
+cd docs/cv-matcher
+python run.py
+```
+
+---
+
+## Providers IA supportés
+
+Le fichier `.env` (copié depuis `.env.example`) contrôle le moteur IA :
+
+| Provider | Clé | Modèle conseillé |
+|----------|-----|-----------------|
+| **Ollama** (local, défaut) | `ollama` | `gemma3:4b`, `llama3.2`, `mistral` |
+| Groq (cloud gratuit) | `gsk_…` | `llama-3.3-70b-versatile` |
+| DeepSeek (cloud) | `sk-…` | `deepseek-chat` |
+| OpenAI (cloud) | `sk-…` | `gpt-4o` |
+
+Au premier lancement de `run.py`, un assistant interactif configure le bon provider.
 
 ---
 
@@ -25,208 +73,140 @@
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│                      Browser (SPA)                     │
-│  Vanilla JS · No build step · CSS custom properties    │
+│                     Navigateur (SPA)                   │
+│  Vanilla JS · Aucune compilation · CSS personnalisé    │
 └────────────────────────┬───────────────────────────────┘
-                         │ REST (JSON)
+                         │ REST / JSON
 ┌────────────────────────▼───────────────────────────────┐
-│               FastAPI Backend (Python 3.11)            │
+│              FastAPI Backend (Python 3.11)             │
 │                                                        │
-│  /api/cv        — upload, list, get, delete            │
-│  /api/jobs      — CRUD for job descriptions            │
-│  /api/matching  — run matching, get ranked results     │
+│  /api/cv       — upload, liste, détail, suppression    │
+│  /api/jobs     — CRUD fiches de poste + upload fichier │
+│  /api/matching — lancer le matching, résultats classés │
 │                                                        │
-│  ┌──────────────┐  ┌─────────────┐  ┌──────────────┐  │
-│  │ DocumentParser│  │  AIService  │  │  MatchEngine │  │
-│  │ PDF/DOCX/TXT │  │ DeepSeek API│  │  Score+Report│  │
-│  └──────────────┘  └─────────────┘  └──────────────┘  │
+│  ┌───────────────┐  ┌─────────────┐  ┌─────────────┐  │
+│  │DocumentParser │  │  AIService  │  │ MatchEngine │  │
+│  │20+ formats    │  │ Ollama/API  │  │ Score+Rapport│  │
+│  └───────────────┘  └─────────────┘  └─────────────┘  │
 │                                                        │
-│  SQLite (SQLAlchemy)     •     Local file storage      │
+│  SQLite (SQLAlchemy)       •       Stockage fichiers   │
 └────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Windows Executable (.exe)
+## Build .exe Windows (autonome)
 
-Build a standalone Windows application — no Python, no Docker needed on the target machine.
-
-### What you get
-
-```
-dist/CVMatcher/
-├── CVMatcher.exe       ← double-click to launch
-├── .env                ← your API key goes here
-├── uploads/            ← uploaded CVs stored here
-├── cv_matcher.db       ← SQLite database (auto-created)
-└── ...                 ← bundled Python runtime
-```
-
-The launcher window lets you enter your API key, see server status, and open the browser:
-
-```
-┌────────────────────────────────────┐
-│  🎯  DeepSeek CV Matcher           │
-├────────────────────────────────────┤
-│  Status:  Running  ✓               │
-│  URL:     http://localhost:8000    │
-├────────────────────────────────────┤
-│  DeepSeek API Key: [sk-***] [Save] │
-├────────────────────────────────────┤
-│  [ 🌐 Open in Browser ]  [ Stop ]  │
-└────────────────────────────────────┘
-```
-
-### Build steps (Windows only)
-
-**Requirements:** Python 3.11+ with *Add to PATH* checked at install time.
+Crée un exécutable qui tourne sans Python ni Docker sur la machine cible.
 
 ```bat
 cd docs\cv-matcher\backend
 build_windows.bat
 ```
 
-The script automatically:
-1. Creates a virtual environment
-2. Installs all dependencies + PyInstaller
-3. Builds the executable
-4. Creates `dist\CVMatcher\CVMatcher.exe`
+**Résultat :**
+```
+dist\CVMatcher\
+├── CVMatcher.exe     ← double-clic pour lancer
+├── .env              ← configuration IA
+├── uploads\          ← CVs uploadés
+└── cv_matcher.db     ← base SQLite (créée automatiquement)
+```
 
-**Total build time:** ~3-5 minutes (first time).
-
-### First run
-
-1. Open `dist\CVMatcher\.env` in Notepad
-2. Replace `sk-your-key-here` with your DeepSeek API key
-3. Double-click `CVMatcher.exe`
-
-Or skip step 1-2 and enter your key directly in the app window, then click **Save**.
-
-### Distribute to others
-
-Zip the entire `dist\CVMatcher\` folder. Recipients just unzip and double-click — no installation required.
+**Prérequis sur la machine cible :** Ollama installé + un modèle chargé. Aucune autre dépendance.
 
 ---
 
-## Quick Start (Server mode)
+## Utilisation
 
-- Python 3.11+
-- A [DeepSeek API key](https://platform.deepseek.com)
-
-### 2. Clone & configure
-
-```bash
-cd docs/cv-matcher
-cp .env.example .env
-# Edit .env and set DEEPSEEK_API_KEY=sk-...
-```
-
-### 3. Run with Docker Compose (recommended)
-
-```bash
-docker compose up --build
-```
-
-Open [http://localhost:8000](http://localhost:8000)
-
-### 4. Run manually (development)
-
-```bash
-cd backend
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
-```
+1. **Uploader des CVs** — Onglet *CVs / Candidats*, glisser-déposer des fichiers PDF/DOCX/etc. L'IA parse en arrière-plan.
+2. **Créer une fiche** — Onglet *Fiches de poste*, saisir le texte ou uploader un fichier (PDF, Word…).
+3. **Lancer le matching** — Onglet *Matching*, sélectionner une fiche et les candidats, cliquer *Lancer*.
+4. **Consulter les résultats** — Candidats classés par score, avec points forts, réserves et justification IA.
 
 ---
 
-## Usage
+## API REST
 
-1. **Upload CVs** — Go to *Resumes / CVs*, drag-and-drop PDF/DOCX files. DeepSeek parses them automatically in the background.
-2. **Create a Job** — Go to *Job Descriptions*, paste a job posting, click *Create & Parse*. DeepSeek extracts requirements.
-3. **Run Matching** — Go to *Run Matching*, select a job and the candidates you want to evaluate, click *Run AI Matching*.
-4. **View Reports** — Click *Report* next to any ranked candidate for the full analysis: scores, skill gaps, strengths, interview questions, and onboarding notes.
+Swagger interactif disponible sur `/api/docs` une fois le serveur lancé.
 
----
-
-## API Reference
-
-Interactive docs available at `/api/docs` (Swagger UI) once the server is running.
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/cv/upload` | Upload a CV file |
-| `GET`  | `/api/cv/` | List all CVs |
-| `GET`  | `/api/cv/{id}` | Get CV + parsed data |
-| `DELETE` | `/api/cv/{id}` | Delete a CV |
-| `POST` | `/api/jobs/` | Create a job description |
-| `GET`  | `/api/jobs/` | List all jobs |
-| `POST` | `/api/matching/run` | Trigger matching (async) |
-| `GET`  | `/api/matching/job/{job_id}` | Get ranked results for a job |
-| `GET`  | `/api/matching/{id}` | Get a single match report |
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| `POST` | `/api/cv/upload` | Uploader un CV |
+| `GET`  | `/api/cv/` | Lister les CVs |
+| `DELETE` | `/api/cv/{id}` | Supprimer un CV |
+| `POST` | `/api/jobs/` | Créer une fiche (texte) |
+| `POST` | `/api/jobs/upload` | Créer une fiche (fichier) |
+| `GET`  | `/api/jobs/` | Lister les fiches |
+| `POST` | `/api/matching/run` | Lancer le matching |
+| `GET`  | `/api/matching/job/{job_id}` | Résultats classés |
 
 ---
 
 ## Configuration
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DEEPSEEK_API_KEY` | — | **Required.** Your DeepSeek API key |
-| `DEEPSEEK_MODEL` | `deepseek-chat` | Model to use (`deepseek-chat` or `deepseek-reasoner`) |
-| `DATABASE_URL` | `sqlite:///./cv_matcher.db` | SQLAlchemy connection string |
-| `UPLOAD_DIR` | `uploads` | Directory for uploaded files |
+| Variable | Défaut | Description |
+|----------|--------|-------------|
+| `AI_PROVIDER` | `ollama` | `ollama` / `groq` / `deepseek` / `cloud` |
+| `API_KEY` | `ollama` | Clé API (laisser `ollama` pour le mode local) |
+| `API_BASE_URL` | `http://localhost:11434/v1` | URL du provider OpenAI-compatible |
+| `AI_MODEL` | `gemma3:4b` | Modèle à utiliser |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | URL Ollama (pour détection des modèles) |
+| `DATABASE_URL` | `sqlite:///./cv_matcher.db` | Base de données |
+| `UPLOAD_DIR` | `uploads` | Dossier des fichiers uploadés |
 
 ---
 
-## Project Structure
+## Run avec Docker Compose
+
+```bash
+cd docs/cv-matcher
+cp .env.example .env     # éditer si nécessaire
+docker compose up --build
+```
+
+Accès sur [http://localhost:8000](http://localhost:8000)
+
+---
+
+## Structure du projet
 
 ```
 cv-matcher/
 ├── backend/
 │   ├── app/
-│   │   ├── main.py              # FastAPI app + CORS + static files
-│   │   ├── config.py            # Environment config
-│   │   ├── database.py          # SQLAlchemy setup
+│   │   ├── main.py              # FastAPI + CORS + fichiers statiques
+│   │   ├── config.py            # Variables d'environnement
+│   │   ├── database.py          # SQLAlchemy
 │   │   ├── models/
-│   │   │   ├── db_models.py     # ORM models (CV, Job, Match)
-│   │   │   └── schemas.py       # Pydantic request/response schemas
+│   │   │   ├── db_models.py     # Modèles ORM (CV, Job, Match)
+│   │   │   └── schemas.py       # Schémas Pydantic
 │   │   ├── services/
-│   │   │   ├── document_parser.py   # PDF / DOCX / TXT extraction
-│   │   │   └── ai_service.py        # DeepSeek prompts & calls
+│   │   │   ├── document_parser.py   # 20+ formats de fichiers
+│   │   │   └── ai_service.py        # Appels IA + parsing JSON robuste
 │   │   └── routers/
 │   │       ├── cv_router.py
 │   │       ├── job_router.py
 │   │       └── match_router.py
 │   ├── requirements.txt
-│   └── Dockerfile
+│   ├── launcher.py              # Interface tkinter (EXE)
+│   ├── cv_matcher.spec          # PyInstaller
+│   └── build_windows.bat        # Build .exe
 ├── frontend/
-│   ├── index.html               # SPA shell
+│   ├── index.html
 │   ├── css/app.css
 │   └── js/
-│       ├── api.js               # Thin fetch wrapper
-│       ├── components.js        # UI helpers (cards, reports, toasts)
-│       └── main.js              # App logic & routing
+│       ├── api.js               # Couche fetch
+│       ├── components.js        # Composants UI
+│       └── main.js              # Logique & routage
+├── run.py                       # Lanceur simple (cross-platform)
+├── start.bat                    # Lanceur Windows (double-clic)
 ├── docker-compose.yml
-├── .env.example
-└── README.md
+└── .env.example
 ```
 
 ---
 
-## DeepSeek Integration Details
-
-Three carefully engineered prompts drive all AI features:
-
-| Prompt | Purpose | Output |
-|--------|---------|--------|
-| `_CV_PROMPT` | Extract structured data from a raw CV | JSON with name, skills, experience, education, projects… |
-| `_JD_PROMPT` | Parse a job description into requirements | JSON with required/preferred skills, experience levels, culture indicators |
-| `_MATCH_PROMPT` | Score a candidate against a job | JSON with scores, skill gaps, strengths, concerns, interview questions |
-
-All prompts request `response_format: json_object` for deterministic, parseable output.
-
----
-
-## License
+## Licence
 
 MIT

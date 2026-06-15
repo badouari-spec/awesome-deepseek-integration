@@ -10,8 +10,8 @@ from .routers import cv_router, job_router, match_router
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="DeepSeek CV Matcher",
-    description="AI-powered CV/Resume matching engine powered by DeepSeek",
+    title="CV Matcher — IA Locale",
+    description="Logiciel de matching CV/poste par IA — Ollama local ou API cloud",
     version="1.0.0",
     docs_url="/api/docs",
     redoc_url="/api/redoc",

@@ -6,8 +6,11 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
-      - DEEPSEEK_MODEL=${DEEPSEEK_MODEL:-deepseek-chat}
+      - AI_PROVIDER=${AI_PROVIDER:-ollama}
+      - API_KEY=${API_KEY:-ollama}
+      - API_BASE_URL=${API_BASE_URL:-http://host.docker.internal:11434/v1}
+      - AI_MODEL=${AI_MODEL:-gemma3:4b}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       - DATABASE_URL=sqlite:///./cv_matcher.db
       - UPLOAD_DIR=/app/uploads
     volumes:
