@@ -1,8 +1,8 @@
 import { api } from "./api.js";
 import {
   toast, openModal, closeModal,
-  cvRow, jobRow, matchRow, matchReport,
-  scoreClass, recommendationBadge,
+  cvRow, jobRow, matchRow, matchReport, kanbanCard,
+  scoreRing, recommendationBadge, pipelineBadge,
 } from "./components.js";
 
 /* ── State ── */
@@ -11,19 +11,20 @@ let currentJobId = null;
 let pollInterval = null;
 
 /* ── Navigation ── */
-const views = ["dashboard", "cvs", "jobs", "matching"];
+const VIEWS = ["dashboard", "cvs", "jobs", "matching", "pipeline"];
 
 function showView(name) {
-  views.forEach(v => {
-    document.getElementById(`view-${v}`).classList.toggle("hidden", v !== name);
+  VIEWS.forEach(v => {
+    document.getElementById(`view-${v}`)?.classList.toggle("hidden", v !== name);
   });
   document.querySelectorAll("nav a[data-view]").forEach(a => {
     a.classList.toggle("active", a.dataset.view === name);
   });
-  if (name === "dashboard") loadDashboard();
-  else if (name === "cvs")  loadCVs();
-  else if (name === "jobs") loadJobs();
-  else if (name === "matching") loadMatchingView();
+  if      (name === "dashboard") loadDashboard();
+  else if (name === "cvs")       loadCVs();
+  else if (name === "jobs")      loadJobs();
+  else if (name === "matching")  loadMatchingView();
+  else if (name === "pipeline")  loadPipeline();
 }
 
 document.querySelectorAll("nav a[data-view]").forEach(a =>
@@ -33,45 +34,66 @@ document.querySelectorAll("nav a[data-view]").forEach(a =>
 /* ════════════ DASHBOARD ════════════ */
 async function loadDashboard() {
   try {
-    [cvs, jobs] = await Promise.all([api.listCVs(), api.listJobs()]);
-    const allMatches = [];
-    await Promise.all(jobs.map(async j => {
-      const m = await api.getMatchesForJob(j.id);
-      allMatches.push(...m);
-    }));
-    matches = allMatches;
+    const stats = await api.getStats();
 
-    document.getElementById("stat-cvs").textContent    = cvs.length;
-    document.getElementById("stat-jobs").textContent   = jobs.length;
-    document.getElementById("stat-matches").textContent = allMatches.length;
-    document.getElementById("stat-strong").textContent  =
-      allMatches.filter(m => m.recommendation === "Strong Match").length;
+    document.getElementById("stat-cvs").textContent     = stats.nb_cvs    ?? "—";
+    document.getElementById("stat-jobs").textContent    = stats.nb_jobs   ?? "—";
+    document.getElementById("stat-matches").textContent = stats.nb_matches ?? "—";
+    document.getElementById("stat-strong").textContent  = stats.nb_top    ?? "—";
 
-    const recent  = allMatches
-      .filter(m => m.status === "completed")
-      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-      .slice(0, 5);
-    const cvMap  = Object.fromEntries(cvs.map(c => [c.id, c]));
-    const jobMap = Object.fromEntries(jobs.map(j => [j.id, j]));
+    /* Pipeline summary */
+    const pl = stats.pipeline || {};
+    const plLabels = {
+      nouveau:"🆕 Nouveau", examen:"🔍 En examen", entretien:"🗓️ Entretien",
+      offre:"📨 Offre", recrute:"🎉 Recruté", rejete:"❌ Rejeté",
+    };
+    const total = Object.values(pl).reduce((a, b) => a + b, 0) || 1;
+    document.getElementById("pipeline-summary").innerHTML = Object.entries(pl)
+      .map(([k, v]) => `
+        <div class="dist-row">
+          <span style="min-width:120px;font-size:13px">${plLabels[k] || k}</span>
+          <div class="progress" style="flex:1"><div class="progress-bar green" style="width:${(v/total*100).toFixed(0)}%"></div></div>
+          <span style="min-width:24px;text-align:right;font-size:13px;font-weight:600">${v}</span>
+        </div>`).join("") || '<p class="text-muted text-sm">Aucun candidat en pipeline</p>';
 
+    /* Score distribution */
+    const dist = stats.score_distribution || {};
+    const distLabels = {
+      "≥85":"🌟 Prioritaire (≥85)", "70-84":"✅ Fort (70-84)",
+      "55-69":"🔶 Moyen (55-69)", "40-54":"⚠️ Faible (40-54)", "<40":"🚫 Éliminatoire (<40)",
+    };
+    const distTotal = Object.values(dist).reduce((a, b) => a + b, 0) || 1;
+    document.getElementById("score-distribution").innerHTML = Object.entries(distLabels)
+      .map(([k, label]) => {
+        const v = dist[k] || 0;
+        const color = k === "≥85" || k === "70-84" ? "green" : k === "55-69" ? "amber" : "red";
+        return `
+          <div class="dist-row">
+            <span style="min-width:160px;font-size:12px">${label}</span>
+            <div class="progress" style="flex:1"><div class="progress-bar ${color}" style="width:${(v/distTotal*100).toFixed(0)}%"></div></div>
+            <span style="min-width:24px;text-align:right;font-size:13px;font-weight:600">${v}</span>
+          </div>`;
+      }).join("");
+
+    /* Recent matches */
+    const recent = (stats.recent_matches || []).slice(0, 8);
     document.getElementById("recent-matches").innerHTML = recent.length
       ? recent.map(m => `
           <tr>
-            <td>${cvMap[m.cv_id]?.candidate_name || "—"}</td>
-            <td>${jobMap[m.job_id]?.title || "—"}</td>
-            <td>
-              <div class="score-circle ${scoreClass(m.overall_score || 0)}"
-                   style="width:40px;height:40px;font-size:13px">
-                ${Math.round(m.overall_score || 0)}
-              </div>
-            </td>
+            <td><strong>${m.candidate_name || "—"}</strong></td>
+            <td>${m.job_title || "—"}</td>
+            <td>${scoreRing(m.overall_score, 44)}</td>
             <td>${recommendationBadge(m.recommendation)}</td>
+            <td>${pipelineBadge(m.pipeline_status)}</td>
           </tr>`).join("")
-      : '<tr><td colspan="4" class="text-muted text-sm" style="text-align:center;padding:24px">Aucun matching encore</td></tr>';
+      : '<tr><td colspan="5" class="text-muted text-sm" style="text-align:center;padding:24px">Aucun matching encore</td></tr>';
+
   } catch (e) {
     toast("Erreur tableau de bord : " + e.message, "error");
   }
 }
+
+document.getElementById("refresh-dashboard")?.addEventListener("click", loadDashboard);
 
 /* ════════════ CVs ════════════ */
 async function loadCVs() {
@@ -81,99 +103,105 @@ async function loadCVs() {
   } catch (e) { toast(e.message, "error"); }
 }
 
-function renderCVTable() {
+function renderCVTable(filter = "") {
   const tbody = document.getElementById("cv-table-body");
-  tbody.innerHTML = cvs.length
-    ? cvs.map(cv => cvRow(cv, viewCV.toString(), deleteCV.toString())).join("")
-    : '<tr><td colspan="5"><div class="empty-state"><div class="icon">📄</div><p>Aucun CV importé</p></div></td></tr>';
+  const list  = filter
+    ? cvs.filter(c => {
+        const name = (c.candidate_name || c.filename || "").toLowerCase();
+        return name.includes(filter.toLowerCase());
+      })
+    : cvs;
+
+  const badge = document.getElementById("cv-count-badge");
+  if (badge) { badge.textContent = `${cvs.length} CV`; badge.style.display = cvs.length ? "" : "none"; }
+
+  tbody.innerHTML = list.length
+    ? list.map(cv => cvRow(cv)).join("")
+    : `<tr><td colspan="5" class="text-muted text-sm" style="text-align:center;padding:24px">${
+        filter ? "Aucun candidat ne correspond à la recherche" : "Aucun CV importé"
+      }</td></tr>`;
 }
 
-async function viewCV(id) {
-  const cv = cvs.find(c => c.id === id) || await api.getCV(id);
-  const d  = cv.parsed_data || {};
-  const skills = d.skills || {};
-  const allSkills = [
-    ...(skills.technical || []),
-    ...(skills.programming_languages || []),
-    ...(skills.tools || []),
-  ];
+document.getElementById("cv-search")?.addEventListener("input", e => renderCVTable(e.target.value));
 
-  openModal(`CV — ${cv.candidate_name || cv.filename}`, `
-    <div class="grid-2 mb-4">
+window.viewCV = async function(id) {
+  let cv = cvs.find(c => c.id === id);
+  if (!cv) cv = await api.getCV(id);
+  const d = cv.parsed_data || {};
+  const skills = (d.competences_techniques || []).slice(0, 20);
+  const softSkills = (d.soft_skills || []);
+  const experiences = (d.experiences || []);
+  const formations = (d.formations || []);
+
+  openModal(`
+    <div class="modal-header">
       <div>
-        <div class="text-muted text-sm mb-2">Contact</div>
-        <div style="font-size:13.5px">${d.email || "—"}</div>
-        <div style="font-size:13.5px">${d.phone || "—"}</div>
-        <div style="font-size:13.5px">${d.location || "—"}</div>
+        <h2>${cv.candidate_name || cv.filename}</h2>
+        <div class="text-muted text-sm" style="margin-top:4px">${cv.filename}</div>
       </div>
-      <div>
-        <div class="text-muted text-sm mb-2">Expérience totale</div>
-        <div style="font-size:22px;font-weight:700">${d.total_years_experience ?? "—"}
-          <span class="text-muted" style="font-size:13px">ans</span></div>
-      </div>
+      <button class="close-btn" onclick="closeModal()">✕</button>
     </div>
-    ${d.summary ? `<div class="card mb-4" style="font-size:13.5px;line-height:1.6;color:var(--text-muted)">${d.summary}</div>` : ""}
-    ${allSkills.length ? `
-      <div class="mb-4">
-        <div class="card-title">Compétences techniques</div>
-        <div>${allSkills.map(s => `<span class="skill-pill pill-neutral">${s}</span>`).join("")}</div>
-      </div>` : ""}
-    ${skills.soft?.length ? `
-      <div class="mb-4">
-        <div class="card-title">Soft skills</div>
-        <div>${skills.soft.map(s => `<span class="skill-pill pill-neutral">${s}</span>`).join("")}</div>
-      </div>` : ""}
-    ${d.experience?.length ? `
-      <div class="mb-4">
-        <div class="card-title">Expériences</div>
-        ${d.experience.map(e => `
-          <div class="card mb-2" style="padding:14px">
-            <div class="flex justify-between">
-              <div><strong>${e.title}</strong> @ ${e.company}</div>
-              <div class="text-muted text-sm">${e.start_date} — ${e.end_date}</div>
-            </div>
-            ${e.technologies?.length
-              ? `<div style="margin-top:6px">${e.technologies.map(t => `<span class="skill-pill pill-neutral">${t}</span>`).join("")}</div>`
-              : ""}
-          </div>`).join("")}
-      </div>` : ""}
-    ${d.education?.length ? `
-      <div>
-        <div class="card-title">Formation</div>
-        ${d.education.map(e => `
-          <div class="flex justify-between" style="font-size:13.5px;padding:6px 0;border-bottom:1px solid var(--border)">
-            <span><strong>${e.degree}</strong> en ${e.field}</span>
-            <span class="text-muted">${e.institution} · ${e.end_year || "en cours"}</span>
-          </div>`).join("")}
-      </div>` : ""}`);
-}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="report-section">
+        <h3>📋 Informations</h3>
+        <div style="font-size:13.5px;display:grid;gap:6px">
+          ${d.email    ? `<div>📧 ${d.email}</div>`    : ""}
+          ${d.telephone ? `<div>📞 ${d.telephone}</div>` : ""}
+          ${d.localisation ? `<div>📍 ${d.localisation}</div>` : ""}
+          ${d.annees_experience != null ? `<div>⏱ <strong>${d.annees_experience} an${d.annees_experience > 1 ? "s" : ""}</strong> d'expérience</div>` : ""}
+          ${d.niveau_etudes ? `<div>🎓 ${d.niveau_etudes}</div>` : ""}
+        </div>
+      </div>
+      ${d.resume_ia ? `<div class="report-section"><h3>💬 Résumé IA</h3><p style="font-size:13px;line-height:1.6;color:var(--text-muted)">${d.resume_ia}</p></div>` : ""}
+    </div>
+    ${skills.length ? `<div class="report-section" style="margin-bottom:16px">
+      <h3>🛠 Compétences techniques</h3>
+      <div>${skills.map(s => `<span class="skill-pill pill-matched">${s}</span>`).join("")}</div>
+    </div>` : ""}
+    ${softSkills.length ? `<div class="report-section" style="margin-bottom:16px">
+      <h3>🤝 Soft skills</h3>
+      <div>${softSkills.map(s => `<span class="skill-pill pill-neutral">${s}</span>`).join("")}</div>
+    </div>` : ""}
+    ${experiences.length ? `<div class="report-section" style="margin-bottom:16px">
+      <h3>💼 Expériences</h3>
+      ${experiences.map(e => `<div style="border-left:3px solid var(--primary);padding-left:12px;margin-bottom:10px">
+        <div style="font-weight:600;font-size:13.5px">${e.poste || e.title || "—"} ${e.entreprise || e.company ? `@ ${e.entreprise || e.company}` : ""}</div>
+        <div class="text-muted text-sm">${e.debut || e.start_date || ""} — ${e.fin || e.end_date || "Présent"}</div>
+      </div>`).join("")}
+    </div>` : ""}
+    ${formations.length ? `<div class="report-section">
+      <h3>🎓 Formation</h3>
+      ${formations.map(f => `<div style="font-size:13.5px;padding:6px 0;border-bottom:1px solid var(--border)">
+        <strong>${f.diplome || f.degree || "—"}</strong>${f.ecole || f.institution ? ` — ${f.ecole || f.institution}` : ""}
+        ${f.annee || f.end_year ? `<span class="text-muted text-sm" style="margin-left:8px">${f.annee || f.end_year}</span>` : ""}
+      </div>`).join("")}
+    </div>` : ""}
+  `, true);
+};
 
-async function deleteCV(id) {
+window.deleteCV = async function(id) {
   if (!confirm("Supprimer ce CV ?")) return;
   try {
     await api.deleteCV(id);
     cvs = cvs.filter(c => c.id !== id);
-    renderCVTable();
+    renderCVTable(document.getElementById("cv-search")?.value || "");
     toast("CV supprimé", "success");
   } catch (e) { toast(e.message, "error"); }
-}
+};
 
 /* ── CV upload zone ── */
 const uploadZone = document.getElementById("upload-zone");
 const fileInput  = document.getElementById("file-input");
 
 uploadZone?.addEventListener("click", () => fileInput.click());
-uploadZone?.addEventListener("dragover", e => { e.preventDefault(); uploadZone.classList.add("drag-over"); });
-uploadZone?.addEventListener("dragleave", () => uploadZone.classList.remove("drag-over"));
+uploadZone?.addEventListener("dragover",  e => { e.preventDefault(); uploadZone.classList.add("drag-over"); });
+uploadZone?.addEventListener("dragleave", ()  => uploadZone.classList.remove("drag-over"));
 uploadZone?.addEventListener("drop", e => {
   e.preventDefault();
   uploadZone.classList.remove("drag-over");
   handleCVFiles(e.dataTransfer.files);
 });
-fileInput?.addEventListener("change", () => {
-  handleCVFiles(fileInput.files);
-  fileInput.value = "";
-});
+fileInput?.addEventListener("change", () => { handleCVFiles(fileInput.files); fileInput.value = ""; });
 
 async function handleCVFiles(files) {
   for (const file of files) {
@@ -182,10 +210,10 @@ async function handleCVFiles(files) {
       const cv = await api.uploadCV(file);
       cvs.unshift(cv);
       renderCVTable();
-      toast(`${file.name} importé — analyse en cours…`, "success");
+      toast(`${file.name} importé — analyse IA en cours…`, "success");
       pollCV(cv.id);
     } catch (e) {
-      toast(`Échec : ${e.message}`, "error");
+      toast(`Échec ${file.name} : ${e.message}`, "error");
     }
   }
 }
@@ -193,16 +221,15 @@ async function handleCVFiles(files) {
 function pollCV(id) {
   const t = setInterval(async () => {
     try {
-      const cv = await api.getCV(id);
+      const cv  = await api.getCV(id);
       const idx = cvs.findIndex(c => c.id === id);
       if (idx !== -1) cvs[idx] = cv;
-      renderCVTable();
+      renderCVTable(document.getElementById("cv-search")?.value || "");
       if (cv.status !== "pending") {
         clearInterval(t);
-        if (cv.status === "parsed")
-          toast(`✓ ${cv.candidate_name || cv.filename} analysé`, "success");
-        else
-          toast(`Erreur d'analyse : ${cv.error_message}`, "error");
+        toast(cv.status === "parsed"
+          ? `✓ ${cv.candidate_name || cv.filename} analysé`
+          : `Erreur analyse : ${cv.error_message}`, cv.status === "parsed" ? "success" : "error");
       }
     } catch { clearInterval(t); }
   }, 3000);
@@ -219,8 +246,8 @@ async function loadJobs() {
 function renderJobTable() {
   const tbody = document.getElementById("job-table-body");
   tbody.innerHTML = jobs.length
-    ? jobs.map(j => jobRow(j, viewJob.toString(), openMatchModal.toString(), deleteJob.toString())).join("")
-    : '<tr><td colspan="4"><div class="empty-state"><div class="icon">💼</div><p>Aucun poste créé</p></div></td></tr>';
+    ? jobs.map(j => jobRow(j)).join("")
+    : '<tr><td colspan="4" class="text-muted text-sm" style="text-align:center;padding:24px">Aucun poste créé</td></tr>';
 }
 
 /* ── Onglets source du poste ── */
@@ -234,31 +261,30 @@ document.querySelectorAll("#job-source-tabs .tab").forEach(btn => {
   });
 });
 
-/* ── Soumission texte ── */
 document.getElementById("job-text-submit")?.addEventListener("click", async () => {
-  const title       = document.getElementById("job-title").value.trim();
-  const company     = document.getElementById("job-company").value.trim();
-  const description = document.getElementById("job-desc").value.trim();
-  if (!title)       return toast("Le titre est requis", "error");
-  if (!description) return toast("La description est requise", "error");
+  const title   = document.getElementById("job-title").value.trim();
+  const company = document.getElementById("job-company").value.trim();
+  const desc    = document.getElementById("job-desc").value.trim();
+  if (!title) return toast("Le titre est requis", "error");
+  if (!desc)  return toast("La description est requise", "error");
 
   const btn = document.getElementById("job-text-submit");
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Création…';
   try {
-    const job = await api.createJob({ title, company: company || null, description });
+    const job = await api.createJob({ title, company: company || null, description: desc });
     jobs.unshift(job);
     renderJobTable();
     document.getElementById("job-title").value   = "";
     document.getElementById("job-company").value = "";
     document.getElementById("job-desc").value    = "";
-    toast(`Poste « ${title} » créé — analyse en cours…`, "success");
+    toast(`Poste « ${title} » créé — analyse IA en cours…`, "success");
     pollJob(job.id);
   } catch (e) {
     toast(e.message, "error");
   } finally {
     btn.disabled = false;
-    btn.textContent = "✦ Créer & Analyser avec l'IA";
+    btn.innerHTML = "✦ Créer &amp; Analyser avec l'IA";
   }
 });
 
@@ -271,7 +297,7 @@ let   selectedJdFile = null;
 
 jdZone?.addEventListener("click",     () => jdFileInput.click());
 jdZone?.addEventListener("dragover",  e => { e.preventDefault(); jdZone.classList.add("drag-over"); });
-jdZone?.addEventListener("dragleave", () => jdZone.classList.remove("drag-over"));
+jdZone?.addEventListener("dragleave", ()  => jdZone.classList.remove("drag-over"));
 jdZone?.addEventListener("drop", e => {
   e.preventDefault();
   jdZone.classList.remove("drag-over");
@@ -303,7 +329,6 @@ jdUploadBtn?.addEventListener("click", async () => {
     renderJobTable();
     toast(`Poste « ${title} » créé depuis ${selectedJdFile.name}`, "success");
     pollJob(job.id);
-    // Reset
     selectedJdFile = null;
     jdFileName.textContent = "";
     jdZone.style.borderColor = "";
@@ -313,7 +338,7 @@ jdUploadBtn?.addEventListener("click", async () => {
     toast(e.message, "error");
   } finally {
     jdUploadBtn.disabled = false;
-    jdUploadBtn.textContent = "✦ Créer depuis le fichier";
+    jdUploadBtn.innerHTML = "✦ Créer depuis le fichier";
   }
 });
 
@@ -326,44 +351,51 @@ function pollJob(id) {
       renderJobTable();
       if (job.status !== "pending") {
         clearInterval(t);
-        if (job.status === "parsed") toast(`✓ « ${job.title} » analysé`, "success");
-        else toast(`Erreur : ${job.error_message}`, "error");
+        toast(job.status === "parsed"
+          ? `✓ « ${job.title} » analysé`
+          : `Erreur : ${job.error_message}`, job.status === "parsed" ? "success" : "error");
       }
     } catch { clearInterval(t); }
   }, 3000);
 }
 
-async function viewJob(id) {
-  const job = jobs.find(j => j.id === id) || await api.getJob(id);
-  const d   = job.parsed_data || {};
-  const req  = d.required_skills || [];
-  const pref = d.preferred_skills || [];
+window.viewJob = async function(id) {
+  let job = jobs.find(j => j.id === id);
+  if (!job) job = await api.getJob(id);
+  const d    = job.parsed_data || {};
+  const req  = d.competences_obligatoires || [];
+  const pref = d.competences_souhaitees   || [];
 
-  openModal(`Poste — ${job.title}`, `
-    <div class="grid-2 mb-4">
-      <div><div class="text-muted text-sm mb-1">Entreprise</div><div>${job.company || "—"}</div></div>
-      <div><div class="text-muted text-sm mb-1">Expérience</div><div>${d.experience_required?.description || "—"}</div></div>
-    </div>
-    ${req.length ? `
-      <div class="mb-4">
-        <div class="card-title">Compétences requises</div>
-        <div>${req.map(s => `<span class="skill-pill pill-missing">${s.skill || s}</span>`).join("")}</div>
-      </div>` : ""}
-    ${pref.length ? `
-      <div class="mb-4">
-        <div class="card-title">Compétences souhaitées</div>
-        <div>${pref.map(s => `<span class="skill-pill pill-preferred">${s.skill || s}</span>`).join("")}</div>
-      </div>` : ""}
-    ${d.responsibilities?.length ? `
+  openModal(`
+    <div class="modal-header">
       <div>
-        <div class="card-title">Responsabilités</div>
-        <ul style="padding-left:18px;display:grid;gap:5px">
-          ${d.responsibilities.map(r => `<li style="font-size:13px;color:var(--text-muted)">${r}</li>`).join("")}
-        </ul>
-      </div>` : ""}`);
-}
+        <h2>${job.title}</h2>
+        ${job.company ? `<div class="text-muted text-sm" style="margin-top:4px">🏢 ${job.company}</div>` : ""}
+      </div>
+      <button class="close-btn" onclick="closeModal()">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      ${d.experience_requise ? `<div class="report-section"><h3>⏱ Expérience requise</h3><p style="font-size:13.5px">${d.experience_requise}</p></div>` : ""}
+      ${d.niveau_etudes ? `<div class="report-section"><h3>🎓 Formation</h3><p style="font-size:13.5px">${d.niveau_etudes}</p></div>` : ""}
+    </div>
+    ${req.length ? `<div class="report-section" style="margin-bottom:16px">
+      <h3>🔴 Compétences obligatoires</h3>
+      <div>${req.map(s => `<span class="skill-pill pill-missing">${s}</span>`).join("")}</div>
+    </div>` : ""}
+    ${pref.length ? `<div class="report-section" style="margin-bottom:16px">
+      <h3>⭐ Compétences souhaitées</h3>
+      <div>${pref.map(s => `<span class="skill-pill pill-preferred">${s}</span>`).join("")}</div>
+    </div>` : ""}
+    ${d.responsabilites?.length ? `<div class="report-section">
+      <h3>📋 Responsabilités</h3>
+      <ul style="padding-left:18px;display:grid;gap:5px">
+        ${d.responsabilites.map(r => `<li style="font-size:13px;color:var(--text-muted)">${r}</li>`).join("")}
+      </ul>
+    </div>` : ""}
+  `, true);
+};
 
-async function deleteJob(id) {
+window.deleteJob = async function(id) {
   if (!confirm("Supprimer ce poste ?")) return;
   try {
     await api.deleteJob(id);
@@ -371,26 +403,28 @@ async function deleteJob(id) {
     renderJobTable();
     toast("Poste supprimé", "success");
   } catch (e) { toast(e.message, "error"); }
-}
+};
 
 /* ════════════ MATCHING ════════════ */
 async function loadMatchingView() {
   try {
     [cvs, jobs] = await Promise.all([api.listCVs(), api.listJobs()]);
     renderJobSelector();
+    populatePipelineJobFilter();
   } catch (e) { toast(e.message, "error"); }
 }
 
 function renderJobSelector() {
   const sel = document.getElementById("match-job-select");
+  if (!sel) return;
   sel.innerHTML = '<option value="">— Sélectionnez un poste —</option>' +
     jobs.map(j => `<option value="${j.id}">${j.title}${j.company ? " @ " + j.company : ""}</option>`).join("");
 }
 
 document.getElementById("match-job-select")?.addEventListener("change", async e => {
-  currentJobId = e.target.value;
+  currentJobId = e.target.value ? +e.target.value : null;
   if (!currentJobId) {
-    document.getElementById("match-cv-list").innerHTML = "<div class='text-muted text-sm'>Sélectionnez un poste d'abord</div>";
+    document.getElementById("match-cv-list").innerHTML = '<div class="text-muted text-sm">Sélectionnez un poste d\'abord</div>';
     document.getElementById("match-results-section").classList.add("hidden");
     return;
   }
@@ -398,24 +432,39 @@ document.getElementById("match-job-select")?.addEventListener("change", async e 
   await loadMatchResults();
 });
 
-function renderCVCheckboxes() {
-  const parsed = cvs.filter(c => c.status === "parsed");
+function renderCVCheckboxes(filter = "") {
+  const parsed = cvs.filter(c => c.status === "parsed" &&
+    (!filter || (c.candidate_name || c.filename || "").toLowerCase().includes(filter.toLowerCase())));
   const container = document.getElementById("match-cv-list");
+  if (!container) return;
   container.innerHTML = parsed.length
     ? parsed.map(cv => `
-        <label class="card" style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px 16px">
-          <input type="checkbox" value="${cv.id}" style="accent-color:var(--primary);width:16px;height:16px">
+        <label class="card" style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 14px">
+          <input type="checkbox" value="${cv.id}" style="accent-color:var(--primary);width:16px;height:16px;flex-shrink:0">
           <div>
             <div style="font-size:13.5px;font-weight:600">${cv.candidate_name || cv.filename}</div>
-            <div class="text-muted text-sm">${cv.parsed_data?.total_years_experience ?? "?"} ans d'expérience</div>
+            ${cv.parsed_data?.annees_experience != null
+              ? `<div class="text-muted text-sm">${cv.parsed_data.annees_experience} an${cv.parsed_data.annees_experience > 1 ? "s" : ""} d'expérience</div>`
+              : ""}
           </div>
         </label>`).join("")
-    : '<div class="text-muted text-sm">Aucun CV analysé disponible. Importez des CV d\'abord.</div>';
+    : `<div class="text-muted text-sm">${filter ? "Aucun candidat trouvé" : "Aucun CV analysé. Importez des CV d'abord."}</div>`;
 }
+
+document.getElementById("match-cv-search")?.addEventListener("input", e =>
+  renderCVCheckboxes(e.target.value)
+);
+
+document.getElementById("select-all-btn")?.addEventListener("click", () => {
+  document.querySelectorAll("#match-cv-list input[type=checkbox]").forEach(cb => cb.checked = true);
+});
+document.getElementById("deselect-all-btn")?.addEventListener("click", () => {
+  document.querySelectorAll("#match-cv-list input[type=checkbox]").forEach(cb => cb.checked = false);
+});
 
 document.getElementById("run-match-btn")?.addEventListener("click", async () => {
   if (!currentJobId) return toast("Sélectionnez un poste", "error");
-  const checked = [...document.querySelectorAll("#match-cv-list input:checked")].map(i => i.value);
+  const checked = [...document.querySelectorAll("#match-cv-list input:checked")].map(i => +i.value);
   if (!checked.length) return toast("Sélectionnez au moins un candidat", "error");
 
   const btn = document.getElementById("run-match-btn");
@@ -439,58 +488,159 @@ async function loadMatchResults() {
   try {
     matches = await api.getMatchesForJob(currentJobId);
     renderMatchResults();
-    if (matches.length) document.getElementById("match-results-section").classList.remove("hidden");
+    if (matches.length) document.getElementById("match-results-section")?.classList.remove("hidden");
   } catch (e) { toast(e.message, "error"); }
 }
 
-function renderMatchResults() {
+function renderMatchResults(filter = "") {
   const tbody = document.getElementById("match-table-body");
-  const cvMap = Object.fromEntries(cvs.map(c => [c.id, c]));
-  tbody.innerHTML = matches.length
-    ? matches.map(m => matchRow(m, cvMap, viewMatchReport.toString())).join("")
-    : '<tr><td colspan="5"><div class="empty-state"><div class="icon">🔍</div><p>Aucun résultat</p></div></td></tr>';
+  if (!tbody) return;
+  const list = filter
+    ? matches.filter(m => (m.candidate_name || "").toLowerCase().includes(filter.toLowerCase()))
+    : matches;
+  list.sort((a, b) => (b.overall_score || 0) - (a.overall_score || 0));
+  tbody.innerHTML = list.length
+    ? list.map(m => matchRow(m)).join("")
+    : '<tr><td colspan="6" class="text-muted text-sm" style="text-align:center;padding:24px">Aucun résultat</td></tr>';
 }
 
-async function viewMatchReport(matchId) {
-  const match = matches.find(m => m.id === matchId) || await api.getMatch(matchId);
-  const cv    = cvs.find(c => c.id === match.cv_id);
-  const job   = jobs.find(j => j.id === match.job_id);
-
-  if (match.status === "pending") {
-    openModal("Analyse en cours…", `
-      <div style="text-align:center;padding:40px">
-        <div class="spinner" style="width:36px;height:36px;margin:0 auto 16px"></div>
-        <p class="text-muted">L'IA analyse le CV par rapport au poste…</p>
-      </div>`);
-    return;
-  }
-  if (match.status === "error") {
-    openModal("Erreur", `<div class="text-muted">${match.error_message || "Erreur inconnue"}</div>`);
-    return;
-  }
-  openModal("Rapport de matching", matchReport(match, cv, job));
-}
+document.getElementById("results-filter")?.addEventListener("input", e =>
+  renderMatchResults(e.target.value)
+);
+document.getElementById("refresh-results")?.addEventListener("click", loadMatchResults);
 
 function startPollingMatches() {
   if (pollInterval) clearInterval(pollInterval);
   pollInterval = setInterval(async () => {
-    if (!currentJobId) return;
-    if (!matches.filter(m => m.status === "pending").length) {
+    if (!currentJobId || !matches.some(m => m.status === "pending")) {
       clearInterval(pollInterval);
+      pollInterval = null;
       return;
     }
     await loadMatchResults();
-  }, 4000);
+  }, 5000);
 }
 
-async function openMatchModal(jobId) {
-  showView("matching");
-  await new Promise(r => setTimeout(r, 100));
-  const sel = document.getElementById("match-job-select");
-  sel.value = jobId;
-  sel.dispatchEvent(new Event("change"));
+window.viewReport = async function(matchId) {
+  try {
+    const m = matches.find(x => x.id === matchId) || await api.getMatch(matchId);
+    if (m.status === "pending") {
+      openModal(`<div class="modal-header"><h2>Analyse en cours…</h2><button class="close-btn" onclick="closeModal()">✕</button></div>
+        <div style="text-align:center;padding:40px">
+          <div class="spinner" style="width:36px;height:36px;margin:0 auto 16px"></div>
+          <p class="text-muted">L'IA analyse le CV par rapport au poste…</p>
+        </div>`);
+      return;
+    }
+    if (m.status === "error") {
+      openModal(`<div class="modal-header"><h2>Erreur IA</h2><button class="close-btn" onclick="closeModal()">✕</button></div>
+        <p class="text-muted" style="padding:20px">${m.error_message || "Erreur inconnue"}</p>`);
+      return;
+    }
+    openModal(matchReport(m), true);
+  } catch (e) { toast(e.message, "error"); }
+};
+
+window.onPipelineChange = async function(select) {
+  const matchId = +select.dataset.matchId;
+  const status  = select.value;
+  try {
+    await api.updatePipeline(matchId, status);
+    const idx = matches.findIndex(m => m.id === matchId);
+    if (idx !== -1) matches[idx].pipeline_status = status;
+    toast("Statut mis à jour", "success");
+  } catch (e) {
+    toast("Erreur mise à jour pipeline : " + e.message, "error");
+    select.value = matches.find(m => m.id === matchId)?.pipeline_status || "nouveau";
+  }
+};
+
+window.saveNotes = async function(matchId) {
+  const textarea = document.getElementById(`report-notes-${matchId}`);
+  if (!textarea) return;
+  const notes  = textarea.value;
+  const match  = matches.find(m => m.id === matchId);
+  const status = match?.pipeline_status || "nouveau";
+  try {
+    await api.updatePipeline(matchId, status, notes);
+    const idx = matches.findIndex(m => m.id === matchId);
+    if (idx !== -1) matches[idx].notes = notes;
+    toast("Notes enregistrées", "success");
+  } catch (e) { toast(e.message, "error"); }
+};
+
+/* ════════════ PIPELINE / KANBAN ════════════ */
+const KANBAN_COLS = [
+  { key: "nouveau",   label: "🆕 Nouveau"     },
+  { key: "examen",    label: "🔍 En examen"   },
+  { key: "entretien", label: "🗓️ Entretien"   },
+  { key: "offre",     label: "📨 Offre"       },
+  { key: "recrute",   label: "🎉 Recruté"     },
+  { key: "rejete",    label: "❌ Rejeté"      },
+];
+
+async function loadPipeline() {
+  const board = document.getElementById("kanban-board");
+  if (!board) return;
+  board.innerHTML = KANBAN_COLS
+    .map(c => `<div class="kanban-col" data-col="${c.key}">
+      <div class="kanban-col-header pl-${c.key}">${c.label} <span class="kanban-count" id="kc-${c.key}"></span></div>
+      <div class="kanban-col-body" id="kb-${c.key}">
+        <div class="text-muted text-sm" style="padding:12px">Chargement…</div>
+      </div>
+    </div>`).join("");
+
+  try {
+    jobs = await api.listJobs();
+    populatePipelineJobFilter();
+    await renderKanban();
+  } catch (e) { toast(e.message, "error"); }
 }
+
+async function renderKanban() {
+  const filterJobId = document.getElementById("pipeline-job-filter")?.value;
+  const jobsToFetch = filterJobId ? jobs.filter(j => j.id === +filterJobId) : jobs;
+
+  const allMatches = [];
+  await Promise.all(jobsToFetch.map(async j => {
+    try {
+      const ms = await api.getMatchesForJob(j.id);
+      ms.forEach(m => { m.job_title = j.title; });
+      allMatches.push(...ms.filter(m => m.status === "completed"));
+    } catch {}
+  }));
+
+  const grouped = {};
+  KANBAN_COLS.forEach(c => { grouped[c.key] = []; });
+  allMatches.forEach(m => {
+    const key = m.pipeline_status || "nouveau";
+    if (grouped[key]) grouped[key].push(m);
+    else grouped["nouveau"].push(m);
+  });
+
+  KANBAN_COLS.forEach(c => {
+    const body  = document.getElementById(`kb-${c.key}`);
+    const count = document.getElementById(`kc-${c.key}`);
+    if (!body) return;
+    const cards = grouped[c.key] || [];
+    if (count) count.textContent = cards.length ? `(${cards.length})` : "";
+    body.innerHTML = cards.length
+      ? cards.sort((a, b) => (b.overall_score || 0) - (a.overall_score || 0))
+             .map(m => kanbanCard(m)).join("")
+      : '<div class="text-muted text-sm" style="padding:12px;font-size:12px">Aucun candidat</div>';
+  });
+}
+
+function populatePipelineJobFilter() {
+  const sel = document.getElementById("pipeline-job-filter");
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Tous les postes</option>' +
+    jobs.map(j => `<option value="${j.id}"${j.id === +current ? " selected" : ""}>${j.title}</option>`).join("");
+}
+
+document.getElementById("pipeline-job-filter")?.addEventListener("change", renderKanban);
+document.getElementById("refresh-pipeline")?.addEventListener("click", renderKanban);
 
 /* ── Init ── */
-window.addEventListener("refresh-matches", loadMatchResults);
 showView("dashboard");

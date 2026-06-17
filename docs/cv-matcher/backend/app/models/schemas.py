@@ -1,56 +1,59 @@
 from pydantic import BaseModel
-from typing import Any, Optional
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 
-
 class CVResponse(BaseModel):
-    id: str
+    id: int
     filename: str
-    candidate_name: Optional[str]
+    candidate_name: str
     status: str
-    parsed_data: Optional[Any]
+    parsed_data: Optional[Dict[str, Any]] = None
     created_at: datetime
-
     class Config:
         from_attributes = True
-
 
 class JobCreate(BaseModel):
     title: str
-    company: Optional[str] = None
+    company: str = ""
     description: str
 
-
 class JobResponse(BaseModel):
-    id: str
+    id: int
     title: str
-    company: Optional[str]
+    company: str
+    description: str
     status: str
-    parsed_data: Optional[Any]
+    parsed_data: Optional[Dict[str, Any]] = None
     created_at: datetime
-
     class Config:
         from_attributes = True
 
-
 class MatchRequest(BaseModel):
-    cv_ids: list[str]
-    job_id: str
+    job_id: int
+    cv_ids: List[int]
 
+class PipelineUpdate(BaseModel):
+    pipeline_status: str
+    notes: Optional[str] = None
 
 class MatchResponse(BaseModel):
-    id: str
-    cv_id: str
-    job_id: str
-    overall_score: Optional[float]
-    skills_score: Optional[float]
-    experience_score: Optional[float]
-    education_score: Optional[float]
-    culture_score: Optional[float]
-    recommendation: Optional[str]
-    match_data: Optional[Any]
+    id: int
+    cv_id: int
+    job_id: int
+    overall_score: float
+    skills_score: float
+    experience_score: float
+    education_score: float
+    culture_score: float
+    potential_score: float
+    communication_score: float
+    recommendation: str
+    pipeline_status: str
+    notes: str
+    match_data: Optional[Dict[str, Any]] = None
     status: str
+    candidate_name: Optional[str] = None
+    job_title: Optional[str] = None
     created_at: datetime
-
     class Config:
         from_attributes = True

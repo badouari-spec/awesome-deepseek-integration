@@ -1,103 +1,155 @@
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+import json
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
-
 from ..database import get_db
-from ..models.db_models import CVModel, JobModel, MatchModel
-from ..models.schemas import MatchRequest, MatchResponse
+from ..models.db_models import MatchModel, CVModel, JobModel
+from ..models.schemas import MatchRequest, MatchResponse, PipelineUpdate
 from ..services.ai_service import match_cv_to_job
 
-router = APIRouter()
+router = APIRouter(prefix="/api/matching", tags=["matching"])
 
-
-async def _run_match_background(match_id: str, cv_id: str, job_id: str, db: Session):
-    match = db.query(MatchModel).filter(MatchModel.id == match_id).first()
-    cv = db.query(CVModel).filter(CVModel.id == cv_id).first()
-    job = db.query(JobModel).filter(JobModel.id == job_id).first()
-
-    if not match or not cv or not job:
-        return
-    if not cv.parsed_data or not job.parsed_data:
-        match.status = "error"
-        match.error_message = "CV or Job not yet parsed. Please wait and retry."
-        db.commit()
-        return
-
+async def _run_match_background(match_id: int, cv_id: int, job_id: int, db_url: str):
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    engine = create_engine(db_url, connect_args={"check_same_thread": False})
+    SessionLocal = sessionmaker(bind=engine)
+    db = SessionLocal()
     try:
-        result = await match_cv_to_job(cv.parsed_data, job.parsed_data)
-        scores = result.get("scores", {})
-        match.overall_score = float(result.get("overall_score", 0))
-        match.skills_score = float(scores.get("skills", 0))
-        match.experience_score = float(scores.get("experience", 0))
-        match.education_score = float(scores.get("education", 0))
-        match.culture_score = float(scores.get("culture_fit", 0))
-        match.recommendation = result.get("recommendation", "")
-        match.match_data = result
-        match.status = "completed"
-    except Exception as exc:
-        match.status = "error"
-        match.error_message = str(exc)
-    db.commit()
+        match = db.query(MatchModel).filter(MatchModel.id == match_id).first()
+        cv    = db.query(CVModel).filter(CVModel.id == cv_id).first()
+        job   = db.query(JobModel).filter(JobModel.id == job_id).first()
+        if not match or not cv or not job:
+            return
+        cv_data  = json.loads(cv.parsed_data  or "{}")
+        job_data = json.loads(job.parsed_data  or "{}")
+        result   = await match_cv_to_job(cv_data, job_data)
+        if not result:
+            match.status = "error"
+            match.error_message = "AI returned empty result"
+            db.commit()
+            return
+        sd = result.get("scores_detail", {})
+        match.overall_score       = float(result.get("score_global", 0))
+        match.skills_score        = float(sd.get("competences_techniques", 0))
+        match.experience_score    = float(sd.get("experience_pertinente", 0))
+        match.education_score     = float(sd.get("formation", 0))
+        match.culture_score       = float(sd.get("culture_fit", 0))
+        match.potential_score     = float(sd.get("potentiel_evolution", 0))
+        match.communication_score = float(sd.get("communication_leadership", 0))
+        match.recommendation      = result.get("recommendation", "MOYEN")
+        match.match_data          = json.dumps(result, ensure_ascii=False)
+        match.status              = "completed"
+        db.commit()
+    except Exception as e:
+        try:
+            match.status = "error"
+            match.error_message = str(e)[:500]
+            db.commit()
+        except Exception:
+            pass
+    finally:
+        db.close()
 
-
-@router.post("/run", response_model=list[MatchResponse], status_code=202)
-def run_matching(
-    payload: MatchRequest,
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
-):
-    job = db.query(JobModel).filter(JobModel.id == payload.job_id).first()
+@router.post("/run")
+async def run_matching(req: MatchRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    from ..config import DATABASE_URL
+    import asyncio
+    job = db.query(JobModel).filter(JobModel.id == req.job_id).first()
     if not job:
         raise HTTPException(404, "Job not found")
-
-    results = []
-    for cv_id in payload.cv_ids:
+    created = []
+    for cv_id in req.cv_ids:
         cv = db.query(CVModel).filter(CVModel.id == cv_id).first()
         if not cv:
             continue
-
-        # Avoid duplicates — reuse existing pending/completed match
-        existing = (
-            db.query(MatchModel)
-            .filter(MatchModel.cv_id == cv_id, MatchModel.job_id == payload.job_id)
-            .order_by(MatchModel.created_at.desc())
-            .first()
-        )
-        if existing and existing.status in ("pending", "completed"):
-            results.append(existing)
+        existing = db.query(MatchModel).filter(
+            MatchModel.cv_id == cv_id, MatchModel.job_id == req.job_id
+        ).first()
+        if existing:
+            if existing.status == "error":
+                existing.status = "pending"
+                db.commit()
+                background_tasks.add_task(
+                    lambda eid=existing.id, cid=cv_id: asyncio.run(_run_match_background(eid, cid, req.job_id, DATABASE_URL))
+                )
+            created.append(existing.id)
             continue
-
-        match = MatchModel(cv_id=cv_id, job_id=payload.job_id, status="pending")
-        db.add(match)
+        m = MatchModel(cv_id=cv_id, job_id=req.job_id, status="pending")
+        db.add(m)
         db.commit()
-        db.refresh(match)
-        background_tasks.add_task(_run_match_background, match.id, cv_id, payload.job_id, db)
-        results.append(match)
-
-    return results
-
+        db.refresh(m)
+        background_tasks.add_task(
+            lambda mid=m.id, cid=cv_id: asyncio.run(_run_match_background(mid, cid, req.job_id, DATABASE_URL))
+        )
+        created.append(m.id)
+    return {"created": len(created), "match_ids": created}
 
 @router.get("/job/{job_id}", response_model=list[MatchResponse])
-def get_matches_for_job(job_id: str, db: Session = Depends(get_db)):
-    return (
+def get_matches_for_job(job_id: int, db: Session = Depends(get_db)):
+    matches = (
         db.query(MatchModel)
         .filter(MatchModel.job_id == job_id)
-        .order_by(MatchModel.overall_score.desc().nullslast())
+        .order_by(MatchModel.overall_score.desc())
         .all()
     )
-
+    result = []
+    for m in matches:
+        d = m.__dict__.copy()
+        d["match_data"]     = json.loads(m.match_data or "{}")
+        d["candidate_name"] = m.cv.candidate_name  if m.cv  else ""
+        d["job_title"]      = m.job.title           if m.job else ""
+        result.append(d)
+    return result
 
 @router.get("/{match_id}", response_model=MatchResponse)
-def get_match(match_id: str, db: Session = Depends(get_db)):
-    match = db.query(MatchModel).filter(MatchModel.id == match_id).first()
-    if not match:
+def get_match(match_id: int, db: Session = Depends(get_db)):
+    m = db.query(MatchModel).filter(MatchModel.id == match_id).first()
+    if not m:
         raise HTTPException(404, "Match not found")
-    return match
+    d = m.__dict__.copy()
+    d["match_data"]     = json.loads(m.match_data or "{}")
+    d["candidate_name"] = m.cv.candidate_name  if m.cv  else ""
+    d["job_title"]      = m.job.title           if m.job else ""
+    return d
 
-
-@router.delete("/{match_id}", status_code=204)
-def delete_match(match_id: str, db: Session = Depends(get_db)):
-    match = db.query(MatchModel).filter(MatchModel.id == match_id).first()
-    if not match:
+@router.patch("/{match_id}/pipeline")
+def update_pipeline(match_id: int, update: PipelineUpdate, db: Session = Depends(get_db)):
+    m = db.query(MatchModel).filter(MatchModel.id == match_id).first()
+    if not m:
         raise HTTPException(404, "Match not found")
-    db.delete(match)
+    valid = {"nouveau", "examen", "entretien", "offre", "recrute", "rejete"}
+    if update.pipeline_status not in valid:
+        raise HTTPException(400, f"Status must be one of: {valid}")
+    m.pipeline_status = update.pipeline_status
+    if update.notes is not None:
+        m.notes = update.notes
     db.commit()
+    return {"ok": True, "pipeline_status": m.pipeline_status}
+
+@router.delete("/{match_id}")
+def delete_match(match_id: int, db: Session = Depends(get_db)):
+    m = db.query(MatchModel).filter(MatchModel.id == match_id).first()
+    if not m:
+        raise HTTPException(404, "Match not found")
+    db.delete(m)
+    db.commit()
+    return {"ok": True}
+
+@router.get("/stats/overview")
+def get_stats(db: Session = Depends(get_db)):
+    from ..models.db_models import CVModel, JobModel
+    nb_cvs    = db.query(CVModel).count()
+    nb_jobs   = db.query(JobModel).count()
+    nb_matches= db.query(MatchModel).filter(MatchModel.status == "completed").count()
+    nb_top    = db.query(MatchModel).filter(MatchModel.overall_score >= 80).count()
+    pipeline  = {}
+    for row in db.query(MatchModel.pipeline_status).all():
+        s = row[0] or "nouveau"
+        pipeline[s] = pipeline.get(s, 0) + 1
+    return {
+        "nb_cvs": nb_cvs,
+        "nb_jobs": nb_jobs,
+        "nb_matches": nb_matches,
+        "nb_top": nb_top,
+        "pipeline": pipeline,
+    }

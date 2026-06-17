@@ -1,54 +1,51 @@
-import uuid
-from sqlalchemy import Column, String, Text, Float, DateTime, JSON
-from sqlalchemy.sql import func
+from sqlalchemy import Column, Integer, String, Float, Text, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
+from datetime import datetime
 from ..database import Base
-
-
-def _uuid():
-    return str(uuid.uuid4())
-
 
 class CVModel(Base):
     __tablename__ = "cvs"
-
-    id = Column(String, primary_key=True, default=_uuid)
-    filename = Column(String, nullable=False)
-    raw_text = Column(Text, nullable=False)
-    parsed_data = Column(JSON, nullable=True)
-    candidate_name = Column(String, nullable=True)
-    status = Column(String, default="pending")  # pending | parsed | error
-    error_message = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=func.now())
-    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
-
+    id            = Column(Integer, primary_key=True, index=True)
+    filename      = Column(String, nullable=False)
+    candidate_name= Column(String, default="")
+    raw_text      = Column(Text,   default="")
+    parsed_data   = Column(Text,   default="{}")
+    status        = Column(String, default="pending")  # pending/parsed/error
+    error_message = Column(String, nullable=True)
+    created_at    = Column(DateTime, default=datetime.utcnow)
+    matches       = relationship("MatchModel", back_populates="cv", cascade="all, delete-orphan")
 
 class JobModel(Base):
     __tablename__ = "jobs"
-
-    id = Column(String, primary_key=True, default=_uuid)
-    title = Column(String, nullable=False)
-    company = Column(String, nullable=True)
-    description = Column(Text, nullable=False)
-    parsed_data = Column(JSON, nullable=True)
-    status = Column(String, default="pending")
-    error_message = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=func.now())
-    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
-
+    id            = Column(Integer, primary_key=True, index=True)
+    title         = Column(String, nullable=False)
+    company       = Column(String, default="")
+    description   = Column(Text,   default="")
+    parsed_data   = Column(Text,   default="{}")
+    status        = Column(String, default="pending")
+    error_message = Column(String, nullable=True)
+    created_at    = Column(DateTime, default=datetime.utcnow)
+    matches       = relationship("MatchModel", back_populates="job", cascade="all, delete-orphan")
 
 class MatchModel(Base):
     __tablename__ = "matches"
-
-    id = Column(String, primary_key=True, default=_uuid)
-    cv_id = Column(String, nullable=False)
-    job_id = Column(String, nullable=False)
-    overall_score = Column(Float, nullable=True)
-    skills_score = Column(Float, nullable=True)
-    experience_score = Column(Float, nullable=True)
-    education_score = Column(Float, nullable=True)
-    culture_score = Column(Float, nullable=True)
-    recommendation = Column(String, nullable=True)
-    match_data = Column(JSON, nullable=True)
-    status = Column(String, default="pending")  # pending | completed | error
-    error_message = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=func.now())
+    id                    = Column(Integer, primary_key=True, index=True)
+    cv_id                 = Column(Integer, ForeignKey("cvs.id"),  nullable=False)
+    job_id                = Column(Integer, ForeignKey("jobs.id"), nullable=False)
+    overall_score         = Column(Float,  default=0.0)
+    skills_score          = Column(Float,  default=0.0)
+    experience_score      = Column(Float,  default=0.0)
+    education_score       = Column(Float,  default=0.0)
+    culture_score         = Column(Float,  default=0.0)
+    potential_score       = Column(Float,  default=0.0)
+    communication_score   = Column(Float,  default=0.0)
+    recommendation        = Column(String, default="")
+    match_data            = Column(Text,   default="{}")
+    status                = Column(String, default="pending")  # pending/completed/error
+    error_message         = Column(String, nullable=True)
+    pipeline_status       = Column(String, default="nouveau")  # nouveau/examen/entretien/offre/recrute/rejete
+    notes                 = Column(Text,   default="")
+    created_at            = Column(DateTime, default=datetime.utcnow)
+    updated_at            = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    cv                    = relationship("CVModel",  back_populates="matches")
+    job                   = relationship("JobModel", back_populates="matches")
