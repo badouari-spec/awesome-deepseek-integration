@@ -19,6 +19,7 @@ English / [简体中文](https://github.com/deepseek-ai/awesome-deepseek-integra
   - [Table of Contents](#table-of-contents)
   - [Project List](#project-list)
     - [Applications](#applications)
+    - [HR & Recruiting Tools](#hr--recruiting-tools)
     - [AI Agent frameworks](#ai-agent-frameworks)
     - [Data AI Applications frameworks](#data-ai-applications-frameworks)
     - [RAG frameworks](#rag-frameworks)
@@ -556,6 +557,18 @@ With these functionalities, the AI assistant can summarize key points within an 
         <td> <img src="https://raw.githubusercontent.com/songquanpeng/one-api/main/web/default/public/logo.png" alt="Icon" width="64" height="auto" /> </td>
         <td> <a href="https://github.com/songquanpeng/one-api">One API</a> </td>
         <td> One API is a LLM API management & key redistribution system, unifying multiple providers under a single API. Single binary, Docker-ready, with an English UI.</td>
+    </tr>
+</table>
+
+<p style="text-align: right;"><a href="#table-of-contents">^ Back to Contents ^</a></p>
+
+###  <span id="hr--recruiting-tools">HR & Recruiting Tools</span>
+
+<table>
+    <tr>
+        <td> 🎯 </td>
+        <td> <a href="https://github.com/deepseek-ai/awesome-deepseek-integration/blob/main/docs/cv-matcher/README.md">DeepSeek CV Matcher</a> </td>
+        <td> An open-source AI-powered CV/Resume matching engine. Upload candidate CVs (PDF, DOCX, TXT), define job descriptions, and let DeepSeek parse, score, and rank candidates with multi-dimensional analysis: skills match, experience relevance, education fit, and cultural alignment. Generates detailed reports with matched/missing skills, strengths, concerns, suggested interview questions, and onboarding notes. Ships with a zero-build-step web UI and a FastAPI backend. </td>
     </tr>
 </table>
 

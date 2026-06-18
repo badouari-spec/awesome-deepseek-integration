@@ -1,0 +1,19 @@
+fastapi==0.110.1
+uvicorn[standard]==0.29.0
+python-multipart==0.0.9
+sqlalchemy==2.0.29
+# Document formats
+pdfplumber==0.11.0
+python-docx==1.1.2
+striprtf==0.0.26
+beautifulsoup4==4.12.3
+odfpy==1.4.1
+openpyxl==3.1.2
+python-pptx==1.0.2
+Pillow==10.3.0
+# AI & HTTP
+openai==1.23.6
+python-dotenv==1.0.1
+aiofiles==23.2.1
+# Build (only needed to compile the .exe)
+pyinstaller==6.6.0

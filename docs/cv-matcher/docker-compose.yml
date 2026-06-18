@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - AI_PROVIDER=${AI_PROVIDER:-ollama}
+      - API_KEY=${API_KEY:-ollama}
+      - API_BASE_URL=${API_BASE_URL:-http://host.docker.internal:11434/v1}
+      - AI_MODEL=${AI_MODEL:-gemma3:4b}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - DATABASE_URL=sqlite:///./cv_matcher.db
+      - UPLOAD_DIR=/app/uploads
+    volumes:
+      - cv_data:/app/uploads
+      - db_data:/app
+    restart: unless-stopped
+
+volumes:
+  cv_data:
+  db_data:
